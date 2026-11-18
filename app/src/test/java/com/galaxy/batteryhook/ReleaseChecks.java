@@ -16,4 +16,6 @@ public class ReleaseChecks {
     @Test public void leadingEdgePullsBeforeTrailingEdge(){for(int i=0;i<=100;i++){float p=i/100f;assertTrue(LiquidMotion.leading(p)>=LiquidMotion.trailing(p));}assertTrue(LiquidMotion.leading(.5f)-LiquidMotion.trailing(.5f)>.2f);}
     @Test public void morphIsMonotonicBothDirections(){float last=0;for(int i=0;i<=100;i++){float a=LiquidMotion.leading(i/100f);assertTrue(a>=last);assertEquals(2-2*a,LiquidMotion.mix(2,0,a),.00001);last=a;}}
     @Test public void neckAndDragAreBounded(){assertEquals(0f,LiquidMotion.neck(0,100,.25f),0);assertTrue(LiquidMotion.neck(3,100,.25f)<=25);assertTrue(LiquidMotion.dragTail(0,1)>0&&LiquidMotion.dragTail(0,1)<1);}
+    @Test public void reducedMotionCapsDuration(){assertEquals(120,PageMotion.time(340,true));assertEquals(340,PageMotion.time(340,false));assertEquals(1,PageMotion.time(0,true));}
+    @Test public void pageParallaxRestoresOriginalPosition(){assertEquals(0f,PageMotion.parallax(1080,true),0f);assertEquals(-37.8f,PageMotion.parallax(1080,false),.0001f);assertEquals(0f,PageMotion.parallax(0,false),0f);}
 }
