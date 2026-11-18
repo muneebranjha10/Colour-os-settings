@@ -1,4 +1,4 @@
-name: Build release candidate
+name: Build public release candidate
 on:
   workflow_dispatch:
   push:
@@ -39,14 +39,18 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC1.apk
+          cp "$APK" ColourOS-Battery-RC2.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
+          sha256sum ColourOS-Battery-RC2.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC1-APK
-          path: ColourOS-Battery-RC1.apk
+          name: GalaxyBattery-RC2-APK
+          path: |
+            ColourOS-Battery-RC2.apk
+            SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc1-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC1.apk --target "$GITHUB_SHA" --title "ColourOS Battery 1.1 RC1" --notes "Public testing candidate. Ten unit checks, signed debug APK, Device Care scope only. One UI 8/9 community testing; unsupported inline controls use stock settings. Not universal device certification." --prerelease
+          TAG=rc2-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC2.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC2 | Made by Muneeb" --notes-file docs/RELEASE-RC2.md --prerelease

@@ -6,8 +6,8 @@ android {
         applicationId 'com.galaxy.batteryhook'
         minSdk 28
         targetSdk 35
-        versionCode 11
-        versionName '1.1-rc1'
+        versionCode 12
+        versionName '1.1-rc2'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
