@@ -46,7 +46,7 @@ final class HealthScreen {
     private LinearLayout card(){LinearLayout c=col();c.setBackground(bg(CARD,23));c.setPadding(dp(18),dp(14),dp(18),dp(14));return c;}
     private void action(LinearLayout parent,String title,String sub,Runnable event){LinearLayout r=col();add(r,text(title,17,WHITE,false),-2);if(sub!=null)add(r,text(sub,13,MUTE,false),-2);r.setPadding(0,dp(10),0,dp(10));r.setClickable(true);r.setFocusable(true);r.setOnClickListener(v->event.run());add(parent,r,-2);}
     void show(){
-        dialog=new Dialog(a,android.R.style.Theme_Material_NoActionBar);
+        dialog=new Dialog(a,android.R.style.Theme_Material_NoActionBar){@Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus&&root!=null)WindowBars.schedule(getWindow(),root);}};
         root=col();root.setBackgroundColor(Color.BLACK);
         LinearLayout header=new LinearLayout(a);header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(dp(18),dp(6),dp(18),dp(6));
         TextView back=text("‹",30,WHITE,true);back.setGravity(Gravity.CENTER);back.setBackground(bg(0xff292929,24));back.setContentDescription("Back");back.setOnClickListener(v->dialog.dismiss());header.addView(back,new LinearLayout.LayoutParams(dp(41),dp(41)));
@@ -61,7 +61,7 @@ final class HealthScreen {
         dialog.setContentView(root);
         dialog.setOnDismissListener(v->{generation++;if(animation!=null)animation.cancel();});
         dialog.show();
-        Window w=dialog.getWindow();if(w!=null){w.setLayout(-1,-1);w.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);w.setStatusBarColor(Color.BLACK);w.setNavigationBarColor(Color.BLACK);if(android.os.Build.VERSION.SDK_INT>=30){w.setDecorFitsSystemWindows(true);WindowInsetsController c=w.getInsetsController();if(c!=null){c.setSystemBarsAppearance(0,WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);c.show(WindowInsets.Type.systemBars());}}}
+        Window w=dialog.getWindow();if(w!=null){w.setLayout(-1,-1);WindowBars.bind(w,root);WindowBars.schedule(w,root);}
         load();
     }
     private void load(){
@@ -70,7 +70,7 @@ final class HealthScreen {
     }
     private void field(String label,String value){
         LinearLayout r=new LinearLayout(a);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(0,dp(11),0,dp(11));
-        TextView key=text(label,15,WHITE,false);r.addView(key,new LinearLayout.LayoutParams(0,-2,1));TextView v=text(value,14,MUTE,false);v.setGravity(Gravity.END);v.setMaxWidth(dp(150));r.addView(v,new LinearLayout.LayoutParams(-2,-2));add(details,r,-2);
+        TextView key=text(label,14,WHITE,false);key.setPadding(0,0,dp(12),0);r.addView(key,new LinearLayout.LayoutParams(0,-2,1));TextView v=text(value,14,MUTE,false);v.setGravity(Gravity.END);v.setMaxWidth(dp(150));r.addView(v,new LinearLayout.LayoutParams(-2,-2));add(details,r,-2);
         View line=new View(a);line.setBackgroundColor(0xff303030);details.addView(line,new LinearLayout.LayoutParams(-1,dp(1)));
     }
     private String value(int v,String units){return v<0?"Unavailable":v+units;}
@@ -81,15 +81,15 @@ final class HealthScreen {
         if(animation!=null)animation.cancel();animation=ValueAnimator.ofFloat(gauge.progress,target<0?0:target/100f);animation.setDuration(650);animation.setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f));animation.addUpdateListener(v->{gauge.progress=(float)v.getAnimatedValue();gauge.invalidate();});animation.start();
         String src=r.asoc>=0?r.asocSource:r.api>=0?"Android battery property 10":r.bsoh>=0?r.bsohSource:"No readable health source";
         source.setText(src+(r.imported?" · manual snapshot":""));
-        details.removeAllViews();field("Fuel gauge ASOC",value(r.asoc,"%"));field("Saved Samsung BSOH",value(r.bsoh,"%"));if(r.api>=0)field("Android SOH",value(r.api,"%"));field("Battery condition",status(r.status));field("Charge cycles",value(r.cycles,""));field("Rated capacity",r.design<0?"Unavailable":r.design/1000+" mAh");field("Full-charge capacity",r.full<0?"Unavailable":r.full/1000+" mAh");field("Temperature",temp(r.temp));field("Highest recorded temperature",temp(r.maxTemp));field("Voltage",r.mv<=0?"Unavailable":String.format(Locale.US,"%.2f V",r.mv/1000f));
+        details.removeAllViews();field("Fuel gauge ASOC",value(r.asoc,"%"));field("Saved Samsung BSOH",value(r.bsoh,"%"));if(r.api>=0)field("Android SOH",value(r.api,"%"));field("Battery condition",status(r.status));field("Charge cycles",value(r.cycles,""));if(r.cycles>=0)field("Cycle count source",r.cycleSource);field("Design capacity",r.design<0?"Unavailable":r.design/1000+" mAh");field("Reported full capacity",r.full<0?"Unavailable":r.full/1000+" mAh");field("Temperature",temp(r.temp));field("Highest recorded temperature",temp(r.maxTemp));field("Voltage",r.mv<=0?"Unavailable":String.format(Locale.US,"%.2f V",r.mv/1000f));
         summary.setText((r.temp>=420?"Battery is warm. Let it cool before prolonged fast charging.\n\n":"")+"ASOC and BSOH are separate estimates. Unavailable readings are never filled with guessed percentages.");
     }
     private void importReading(){
         EditText edit=new EditText(a);edit.setHint("fg_asoc=…\nmSavedBatteryBsoh: …");edit.setMinLines(4);edit.setGravity(Gravity.TOP);edit.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         new AlertDialog.Builder(a).setTitle("Import diagnostic snapshot").setMessage("Paste the filtered Termux output. It will be labeled as a manual snapshot, not a live reading. No root permission is requested by this app.").setView(edit).setNegativeButton("Cancel",null).setPositiveButton("Import",(d,w)->{
             HealthReader.Reading parsed=new HealthReader.Reading();HealthReader.parseDump(parsed,edit.getText().toString(),"Imported diagnostic");
-            if(parsed.asoc<0&&parsed.bsoh<0){Toast.makeText(a,"No valid ASOC or BSOH field found",Toast.LENGTH_LONG).show();return;}
-            generation++;if(reading==null)reading=new HealthReader.Reading();if(parsed.asoc>=0){reading.asoc=parsed.asoc;reading.asocSource=parsed.asocSource;}if(parsed.bsoh>=0){reading.bsoh=parsed.bsoh;reading.bsohSource=parsed.bsohSource;}if(parsed.maxTemp>=0)reading.maxTemp=parsed.maxTemp;if(parsed.cycles>=0)reading.cycles=parsed.cycles;reading.imported=true;render();
+            HealthReader.resolveCycles(parsed);if(parsed.asoc<0&&parsed.bsoh<0&&parsed.cycles<0){Toast.makeText(a,"No valid health or cycle field found",Toast.LENGTH_LONG).show();return;}
+            generation++;if(reading==null)reading=new HealthReader.Reading();if(parsed.asoc>=0){reading.asoc=parsed.asoc;reading.asocSource=parsed.asocSource;}if(parsed.bsoh>=0){reading.bsoh=parsed.bsoh;reading.bsohSource=parsed.bsohSource;}if(parsed.maxTemp>=0)reading.maxTemp=parsed.maxTemp;if(parsed.cycles>=0){reading.cycles=parsed.cycles;reading.cycleSource="Manual snapshot · "+parsed.cycleSource;}reading.imported=true;render();
         }).show();
     }
     private final class Gauge extends View{

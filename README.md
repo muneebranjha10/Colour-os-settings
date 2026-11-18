@@ -7,3 +7,6 @@ Dedicated Battery Health screen. Reads ASOC through sysfs or Samsung battery ser
 
 ## Stage 9
 Inline native battery protection control: Settings.Global protect_battery 0/3/1 (off/basic/maximum), battery_protection_threshold 80/85/90/95. Restricted to recognized values; unsupported settings or sleep mode go to original Samsung page. Writes only after user input, read back, do not override hardware safety or charging service. Actual stop/resume needs phone verification. Drag the three-mode optical selector horizontally; vertical gestures still scroll; only commit once on release, settle to confirmed mode. Existing health and other features retained.
+
+## Stage 10
+Samsung battery_cycle prioritized, bracketed mSavedBatteryUsage fallback divided by 100, source labels, no placeholder 0. Window-local status bar restoration on dashboard and health screen, with bounded retries after focus. Both power and charging selectors support horizontal drag, commit on release, and charging policy continues to require unplugged state. Custom glass strength, animation speed, monitor visibility; grouped settings rows. Device tests required; no global icon settings, kernel writes or hardcoded battery data.
