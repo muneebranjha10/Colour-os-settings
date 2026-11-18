@@ -1,3 +1,6 @@
 # ColourOS Battery Stage 7
 
 Native Device Care hook; tested by CI, not on hardware. Rejects near-zero current readings during active charging, uses charge-counter slope and percentage-change estimates, and tries readable Linux fuel gauge paths without requesting root. Values are battery-side estimates, not adapter output. Charge stored is distinct from estimated charge needed. Charging selector uses Samsung's ad.m.e/p helper (Settings.System adaptive_fast_charging), identified in the supplied Device Care APK. Standard and unified Fast/Super fast, change only while unplugged; does not force charger protocol. Balanced is Light and High performance is Standard; measured profile estimates may overlap. Thermal alert is optional, only when page is open. More pronounced optical edge and selected glass tint. No thermal limits or kernel writes.
+
+## Stage 8
+Dedicated Battery Health screen. Reads ASOC through sysfs or Samsung battery service, separately displays BSOH and Android SOH where available. No hardcoded health values or root grant in host. Manual diagnostic paste fallback is explicitly labeled and memory-only. Existing controls remain; CI is not a hardware test.
