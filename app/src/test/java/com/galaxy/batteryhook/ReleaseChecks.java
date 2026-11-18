@@ -38,4 +38,8 @@ public class ReleaseChecks {
     @Test public void dragDeformationIsBounded(){assertEquals(.24f,GlassMath.dragFollower(1,0,1),.00001f);assertEquals(.76f,GlassMath.dragFollower(0,1,1),.00001f);assertEquals(0f,GlassMath.neckFraction(0),0);assertEquals(.23f,GlassMath.neckFraction(4),.00001f);}
     @Test public void elasticPulseReturnsToRest(){assertEquals(0f,GlassMath.elasticPulse(0),0);assertEquals(0f,GlassMath.elasticPulse(1),0);assertTrue(GlassMath.elasticPulse(.25f)>0);assertTrue(GlassMath.elasticPulse(.75f)<0);}
     @Test public void followerUsesElapsedTime(){assertEquals(GlassMath.followFraction(32),1-(1-GlassMath.followFraction(16))*(1-GlassMath.followFraction(16)),.00001f);}
+    private static final class FakeBetaStore implements BetaConsent.Store {boolean accepted;boolean writes=true;int count;public boolean acknowledged(){return accepted;}public boolean save(){count++;if(writes)accepted=true;return writes;}}
+    @Test public void betaNoticeDoesNotAppearAgainAfterContinue(){FakeBetaStore s=new FakeBetaStore();assertTrue(new BetaConsent(s).needsNotice());assertTrue(new BetaConsent(s).accept());assertFalse(new BetaConsent(s).needsNotice());assertEquals(1,s.count);}
+    @Test public void simplyOpeningDoesNotAcknowledgeBeta(){FakeBetaStore s=new FakeBetaStore();assertTrue(new BetaConsent(s).needsNotice());assertTrue(new BetaConsent(s).needsNotice());assertEquals(0,s.count);}
+    @Test public void betaNoticeRemainsWhenSavingFails(){FakeBetaStore s=new FakeBetaStore();s.writes=false;assertFalse(new BetaConsent(s).accept());assertTrue(new BetaConsent(s).needsNotice());}
 }

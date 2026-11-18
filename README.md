@@ -13,6 +13,10 @@
 
 </div>
 
+## Public Beta 1
+
+This separate test branch is based on RC10. The first visit to the Battery page displays a warning before the custom dashboard. Continue saves an acknowledgment in Device Care preferences; it survives reopening and rebooting. Clearing Device Care data may reset it. Both builds use the same module package to avoid simultaneous hooks; install only one. The main branch and RC10 release are unchanged.
+
 ## Overview
 
 ColourOS Battery replaces the appearance of the supported native Battery activity with a custom dashboard while preserving access to Samsung's original controls. This is an independent community project, not an official Samsung or OPPO product.

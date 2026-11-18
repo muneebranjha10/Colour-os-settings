@@ -13,6 +13,7 @@ public final class BatteryHook implements IXposedHookLoadPackage {
     private static final String PKG="com.samsung.android.lool";
     private static final String ACT="com.samsung.android.sm.battery.ui.BatteryActivity";
     private static final String TAG="ColourOSBatteryRC1";
+    private static final String BETA_TAG="ColourOSBatteryPublicBetaNotice";
     static void log(String s){ try{XposedBridge.log("["+TAG+"] "+s);}catch(Throwable ignored){} }
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p){
         if(!PKG.equals(p.packageName)||!PKG.equals(p.processName))return;
@@ -43,6 +44,26 @@ public final class BatteryHook implements IXposedHookLoadPackage {
         if(!(host instanceof FrameLayout)){log("unsupported content root");return;}
         View old=host.findViewWithTag(TAG);
         if(old instanceof Dashboard){((Dashboard)old).ensureBars();((Dashboard)old).refresh();return;}
+        View notice=host.findViewWithTag(BETA_TAG);
+        if(notice instanceof BetaWelcome){notice.bringToFront();((BetaWelcome)notice).ensureBars();return;}
+        android.content.SharedPreferences settings=a.getSharedPreferences("colour_battery_beta_notice",Activity.MODE_PRIVATE);
+        BetaConsent consent=new BetaConsent(new BetaConsent.Store(){
+            public boolean acknowledged(){return settings.getBoolean("public_beta_acknowledged",false);}
+            public boolean save(){return settings.edit().putBoolean("public_beta_acknowledged",true).commit();}
+        });
+        if(consent.needsNotice()){
+            BetaWelcome welcome=new BetaWelcome(a,consent,()->{
+                if(a.isFinishing()||a.isDestroyed())return;
+                showDashboard(a,host);
+                View gate=host.findViewWithTag(BETA_TAG);if(gate!=null)host.removeView(gate);
+            });
+            welcome.setTag(BETA_TAG);host.addView(welcome,new FrameLayout.LayoutParams(-1,-1));
+            welcome.bringToFront();welcome.post(welcome::ensureBars);return;
+        }
+        showDashboard(a,host);
+    }
+    private void showDashboard(Activity a,ViewGroup host){
+        if(host.findViewWithTag(TAG) instanceof Dashboard)return;
         Dashboard d=new Dashboard(a,()->{stock.add(a);View current=host.findViewWithTag(TAG);if(current!=null)host.removeView(current);});
         d.setTag(TAG);
         host.addView(d,new FrameLayout.LayoutParams(-1,-1));

@@ -1,8 +1,8 @@
-name: Build public release candidate
+name: Build separate public beta
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [public-beta]
 permissions:
   contents: write
 jobs:
@@ -24,15 +24,15 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Require all thirty-six regression checks
+      - name: Require all thirty-nine regression checks
         run: |
           python3 - <<'PY'
           import glob,xml.etree.ElementTree as E
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           suites=[E.parse(f).getroot() for f in files]
-          assert sum(int(s.get('tests',0)) for s in suites)>=36
+          assert sum(int(s.get('tests',0)) for s in suites)>=39
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
-          print('Thirty-six or more regression checks passed')
+          print('Thirty-nine or more regression checks passed')
           PY
       - name: Verify glass touch wiring
         run: |
@@ -113,23 +113,37 @@ jobs:
           assert 'Bitmap' not in optics and 'Bitmap' not in rail
           print('Optical fallback and lifecycle wiring verified')
           PY
+      - name: Verify beta notice gating
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/java/com/galaxy/batteryhook')
+          h=(p/'BatteryHook.java').read_text()
+          b=(p/'BetaWelcome.java').read_text()
+          assert 'public_beta_acknowledged' in h
+          assert '.putBoolean("public_beta_acknowledged",true).commit()' in h
+          assert 'if(consent.needsNotice())' in h and 'welcome.setTag(BETA_TAG)' in h
+          assert 'if(notice instanceof BetaWelcome)' in h
+          assert 'if(!consent.accept())' in b and 'try{open.run();}' in b
+          print('Beta notice persistence and dashboard gating verified')
+          PY
       - name: Verify APK and Xposed entry
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC10.apk
+          cp "$APK" ColourOS-Battery-Public-Beta-1.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC10.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-Public-Beta-1.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC10-APK
+          name: GalaxyBattery-Public-Beta-1-APK
           path: |
-            ColourOS-Battery-RC10.apk
+            ColourOS-Battery-Public-Beta-1.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc10-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC10.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC10 | Made by Muneeb" --notes-file docs/RELEASE-RC10.md --prerelease
+          TAG=public-beta1-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-Public-Beta-1.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 Public Beta 1 | Made by Muneeb" --notes-file docs/RELEASE-PUBLIC-BETA-1.md --prerelease
