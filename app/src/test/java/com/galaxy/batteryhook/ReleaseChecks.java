@@ -34,4 +34,8 @@ public class ReleaseChecks {
     @Test public void standardCycleFieldIsAValidFallback(){HealthReader.Reading r=new HealthReader.Reading();HealthReader.parseDump(r,"cycle_count: [201]","service");assertEquals(201,r.cycles);}
     @Test public void glassLabelsFollowVisualPosition(){assertEquals(1f,GlassMath.coverage(1,1),0f);assertEquals(0f,GlassMath.coverage(-1,0),0f);assertEquals(0f,GlassMath.coverage(1,0),0f);assertEquals(.5f,GlassMath.coverage(.5f,0),0f);assertEquals(.5f,GlassMath.coverage(.5f,1),0f);}
     @Test public void labelColorTransferIsContinuous(){float prev=0;for(int i=0;i<=100;i++){float v=GlassMath.coverage(i/100f,1);assertTrue(v>=prev);assertTrue(v-prev<.02f);assertEquals(1f,v+GlassMath.coverage(i/100f,0),.00001f);prev=v;}}
+    @Test public void elasticDragTailFollowsWithoutLeading(){float prior=0;for(int i=0;i<30;i++){float next=GlassMath.dragFollower(prior,1,16);assertTrue(next>=prior&&next<=1);prior=next;}assertTrue(prior>.999f);assertTrue(GlassMath.dragFollower(1,0,16)>=0);}
+    @Test public void dragDeformationIsBounded(){assertEquals(.24f,GlassMath.dragFollower(1,0,1),.00001f);assertEquals(.76f,GlassMath.dragFollower(0,1,1),.00001f);assertEquals(0f,GlassMath.neckFraction(0),0);assertEquals(.23f,GlassMath.neckFraction(4),.00001f);}
+    @Test public void elasticPulseReturnsToRest(){assertEquals(0f,GlassMath.elasticPulse(0),0);assertEquals(0f,GlassMath.elasticPulse(1),0);assertTrue(GlassMath.elasticPulse(.25f)>0);assertTrue(GlassMath.elasticPulse(.75f)<0);}
+    @Test public void followerUsesElapsedTime(){assertEquals(GlassMath.followFraction(32),1-(1-GlassMath.followFraction(16))*(1-GlassMath.followFraction(16)),.00001f);}
 }

@@ -24,15 +24,15 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Require all thirty-two regression checks
+      - name: Require all thirty-six regression checks
         run: |
           python3 - <<'PY'
           import glob,xml.etree.ElementTree as E
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           suites=[E.parse(f).getroot() for f in files]
-          assert sum(int(s.get('tests',0)) for s in suites)>=32
+          assert sum(int(s.get('tests',0)) for s in suites)>=36
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
-          print('Thirty-two or more regression checks passed')
+          print('Thirty-six or more regression checks passed')
           PY
       - name: Verify glass touch wiring
         run: |
@@ -99,23 +99,37 @@ jobs:
           assert 'static void panel(' not in motion
           print('Frame-linked labels, cached paint and single dialog transitions verified')
           PY
+      - name: Verify bounded optical renderer
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          r=Path('app/src/main/java/com/galaxy/batteryhook')
+          rail=(r/'GlassRail.java').read_text()
+          optics=(r/'LensOptics.java').read_text()
+          assert 'canvas.isHardwareAccelerated()' in rail and 'SDK_INT>=33' in rail
+          assert 'if(!optical)' in rail and 'removeCallbacks(dragFrame)' in rail
+          assert 'postOnAnimation(dragFrame)' in rail and 'if(!dragging||!isAttachedToWindow())return' in rail
+          assert 'tileSurface(p+bend)-tileSurface(p)' in optics
+          assert 'Bitmap' not in optics and 'Bitmap' not in rail
+          print('Optical fallback and lifecycle wiring verified')
+          PY
       - name: Verify APK and Xposed entry
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC9.apk
+          cp "$APK" ColourOS-Battery-RC10.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC9.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-RC10.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC9-APK
+          name: GalaxyBattery-RC10-APK
           path: |
-            ColourOS-Battery-RC9.apk
+            ColourOS-Battery-RC10.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc9-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC9.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC9 | Made by Muneeb" --notes-file docs/RELEASE-RC9.md --prerelease
+          TAG=rc10-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC10.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC10 | Made by Muneeb" --notes-file docs/RELEASE-RC10.md --prerelease
