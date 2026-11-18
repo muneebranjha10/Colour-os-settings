@@ -1,4 +1,4 @@
-name: Build stage 3 APK
+name: Build stage 4 APK
 on:
   workflow_dispatch:
   push:
@@ -29,14 +29,14 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-Stage3.apk
+          cp "$APK" ColourOS-Battery-Stage4.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-Stage3-APK
-          path: ColourOS-Battery-Stage3.apk
+          name: GalaxyBattery-Stage4-APK
+          path: ColourOS-Battery-Stage4.apk
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=stage3-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-Stage3.apk --target "$GITHUB_SHA" --title "Stage 3 integration test" --notes "Animated mode control test. Samsung Light/Standard profile mapping and real estimates. Scope Device Care only." --prerelease
+          TAG=stage4-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-Stage4.apk --target "$GITHUB_SHA" --title "Stage 4 integration test" --notes "Charging transition, system bar restore, device typography, native battery feature access. Scope Device Care only." --prerelease
