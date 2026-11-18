@@ -24,7 +24,7 @@ final class NativeModes {
     private final BatteryManager bm;
     private volatile boolean closed;
     private boolean estimating;
-    private long lastQuery;
+    private volatile long lastQuery;
     private int observedMode=-1;
     private long stableSince;
     private final boolean lightSupported;
@@ -39,7 +39,7 @@ final class NativeModes {
     }
     boolean isSaving(){try{return pm!=null&&pm.isPowerSaveMode();}catch(Throwable e){return false;}}
     private int profile(){try{return Settings.Global.getInt(a.getContentResolver(),"sem_low_heat_mode",0);}catch(Throwable e){return -1;}}
-    int normalMode(){return !lightSupported||profile()!=1?2:0;}
+    int normalMode(){return !lightSupported?0:profile()==1?0:2;}
     int activeMode(){if(isSaving())return 1;if(!lightSupported)return 0;int p=profile();return p==1?0:p==0?2:-1;}
     private static Object callStatic(Class<?> c,String name,Class<?>[] args,Object... values)throws Exception{Method m=c.getDeclaredMethod(name,args);m.setAccessible(true);return m.invoke(null,values);}
     private void power(boolean on)throws Exception{
