@@ -6,8 +6,8 @@ android {
         applicationId 'com.galaxy.batteryhook'
         minSdk 28
         targetSdk 35
-        versionCode 8
-        versionName '0.8-battery-health'
+        versionCode 9
+        versionName '0.9-protection-slide'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

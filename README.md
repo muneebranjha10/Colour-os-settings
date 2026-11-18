@@ -4,3 +4,6 @@ Native Device Care hook; tested by CI, not on hardware. Rejects near-zero curren
 
 ## Stage 8
 Dedicated Battery Health screen. Reads ASOC through sysfs or Samsung battery service, separately displays BSOH and Android SOH where available. No hardcoded health values or root grant in host. Manual diagnostic paste fallback is explicitly labeled and memory-only. Existing controls remain; CI is not a hardware test.
+
+## Stage 9
+Inline native battery protection control: Settings.Global protect_battery 0/3/1 (off/basic/maximum), battery_protection_threshold 80/85/90/95. Restricted to recognized values; unsupported settings or sleep mode go to original Samsung page. Writes only after user input, read back, do not override hardware safety or charging service. Actual stop/resume needs phone verification. Drag the three-mode optical selector horizontally; vertical gestures still scroll; only commit once on release, settle to confirmed mode. Existing health and other features retained.
