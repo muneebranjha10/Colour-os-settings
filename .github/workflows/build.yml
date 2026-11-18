@@ -1,4 +1,4 @@
-name: Build stage 6 APK
+name: Build stage 7 APK
 on:
   workflow_dispatch:
   push:
@@ -29,14 +29,14 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-Stage6.apk
+          cp "$APK" ColourOS-Battery-Stage7.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-Stage6-APK
-          path: ColourOS-Battery-Stage6.apk
+          name: GalaxyBattery-Stage7-APK
+          path: ColourOS-Battery-Stage7.apk
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=stage6-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-Stage6.apk --target "$GITHUB_SHA" --title "Stage 6 integration test" --notes "Current fallback, persistent optical lens and live battery monitor. Scope Device Care only." --prerelease
+          TAG=stage7-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-Stage7.apk --target "$GITHUB_SHA" --title "Stage 7 integration test" --notes "Current fallback, persistent optical lens and live battery monitor. Scope Device Care only." --prerelease

@@ -26,6 +26,7 @@ final class NativeModes {
     private boolean estimating;
     private volatile long lastQuery;
     private int observedMode=-1;
+    private long dischargeAnchorTime;private int dischargeAnchor=-1;
     private long stableSince;
     private final boolean lightSupported;
     interface Estimates{void display(String[] values);}
@@ -84,8 +85,11 @@ final class NativeModes {
     private int chargeCounter(){try{int value=bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);return value>0?value:-1;}catch(Throwable t){return -1;}}
     private boolean discharging(){try{Intent i=a.registerReceiver(null,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));return i!=null&&i.getIntExtra(BatteryManager.EXTRA_PLUGGED,0)==0&&i.getIntExtra(BatteryManager.EXTRA_STATUS,0)==BatteryManager.BATTERY_STATUS_DISCHARGING;}catch(Throwable t){return false;}}
     private void sample(int mode){
-        long now=SystemClock.elapsedRealtime();if(mode!=observedMode){observedMode=mode;stableSince=now;return;}
-        if(mode<0||!discharging()||now-stableSince<45000)return;
+        long now=SystemClock.elapsedRealtime();if(mode!=observedMode){observedMode=mode;stableSince=now;dischargeAnchor=-1;dischargeAnchorTime=0;return;}
+        if(mode<0||!discharging()){dischargeAnchor=-1;return;}
+        int remaining=chargeCounter();
+        if(remaining>0){if(dischargeAnchor<0){dischargeAnchor=remaining;dischargeAnchorTime=now;}else if(now-dischargeAnchorTime>=60000&&dischargeAnchor-remaining>=500){double ua=(dischargeAnchor-remaining)*3600000d/(now-dischargeAnchorTime);dischargeAnchor=remaining;dischargeAnchorTime=now;if(ua>=30000&&ua<=8000000){float previous=history.getFloat("rate"+mode,0);float rate=(float)ua;history.edit().putFloat("rate"+mode,previous>0?previous*.65f+rate*.35f:rate).putLong("date"+mode,System.currentTimeMillis()).apply();return;}}}
+        if(now-stableSince<45000)return;
         try{int ua=bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE);if(ua>=-30000||ua<-8000000)return;float rate=-ua;float old=history.getFloat("rate"+mode,0);history.edit().putFloat("rate"+mode,old>0?old*.8f+rate*.2f:rate).putLong("date"+mode,System.currentTimeMillis()).apply();}catch(Throwable ignored){}
     }
     private int measured(int mode,int charge){
@@ -106,7 +110,7 @@ final class NativeModes {
                 if(!lightSupported){values[0]=format(regular);values[2]="Unsupported";}
                 else{
                     int normal=normalMode(),other=normal==0?2:0;
-                    values[normal]=format(regular>0?regular:measured(normal,charge));
+                    int measuredNormal=measured(normal,charge);values[normal]=format(measuredNormal>0?measuredNormal:regular);
                     values[other]=format(measured(other,charge));
                 }
             }catch(Throwable t){BatteryHook.log("estimate: "+t);}

@@ -50,7 +50,10 @@ final class Dashboard extends LinearLayout {
     private final Activity a;
     private final Context uiContext;
     private final Typeface deviceTypeface;
-    private TextView assistantSummary,chargeDetail,liveTemp,liveCurrent,liveVoltage,liveCharge,liveSession,liveSource;
+    private TextView assistantSummary,chargeDetail,liveTemp,liveCurrent,liveVoltage,liveCharge,liveSession,liveSource,chargeNeeded,chargePolicyNote,thermalNote;
+    private final LinearLayout[] chargingTiles=new LinearLayout[2];private final TextView[] chargingTitles=new TextView[2];
+    private int thermalLimit=0;private boolean thermalWarned;
+    private ChargingPolicy chargingPolicy;
     private PowerGraph powerGraph;
     private ChargeTelemetry.Reading lastReading;
     private ChargeTelemetry telemetry;
@@ -96,7 +99,7 @@ final class Dashboard extends LinearLayout {
     private void tap(View v,Runnable action){v.setClickable(true);v.setFocusable(true);v.setOnClickListener(w->{try{action.run();}catch(Throwable e){BatteryHook.log("action failed: "+e);Toast.makeText(a,"This control is unavailable on this device.",Toast.LENGTH_SHORT).show();}});}
     Dashboard(Activity activity,Runnable restore){
         super(activity);a=activity;original=restore;
-        uiContext=a;Typeface nativeFont=new TextView(a).getTypeface();deviceTypeface=nativeFont==null?Typeface.DEFAULT:nativeFont;engine=new NativeModes(a);telemetry=new ChargeTelemetry(a);
+        uiContext=a;Typeface nativeFont=new TextView(a).getTypeface();deviceTypeface=nativeFont==null?Typeface.DEFAULT:nativeFont;engine=new NativeModes(a);telemetry=new ChargeTelemetry(a);chargingPolicy=new ChargingPolicy(a);thermalLimit=a.getSharedPreferences("colour_battery_options",0).getInt("thermal_alert",0);
         setOrientation(VERTICAL);setBackgroundColor(BG);setClickable(true);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
         setOnApplyWindowInsetsListener((v,insets)->{applySafeInsets(insets);return insets;});
@@ -112,7 +115,7 @@ final class Dashboard extends LinearLayout {
         bar=new Gauge();add(body,bar,29);space(body,23);
         TextView instructions=text("Instructions ⓘ",14,MUTED,false);instructions.setPadding(dp(10),0,0,dp(2));add(body,instructions,-2);tap(instructions,()->dialog("Instructions","Balanced uses Samsung Light profile on supported phones; High performance uses Samsung Standard (no overclocking). Power saving and Super power saving control the same Samsung saver. Times are Samsung estimates or measured discharge estimates, not guarantees. Tap ⋮ for the original page."));space(body,9);
         LinearLayout main=card();add(body,main,-2);
-        LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode","High\nperformance\nmode"};
+        LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode","High performance\nmode"};
         for(int i=0;i<3;i++){
             final int index=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER_HORIZONTAL);tile.setPadding(dp(3),dp(12),dp(3),dp(10));glass[i]=new Glass();tile.setBackground(glass[i]);
             LayoutParams p=new LayoutParams(0,dp(122),1);if(i>0)p.leftMargin=dp(9);tiles.addView(tile,p);modes[i]=tile;
@@ -120,7 +123,8 @@ final class Dashboard extends LinearLayout {
             TextView label=text(captions[i],12.5f,WHITE,false);label.setGravity(Gravity.CENTER);label.setMaxLines(3);label.setBreakStrategy(0);label.setHyphenationFrequency(0);label.setAutoSizeTextTypeUniformWithConfiguration(10,13,1,TypedValue.COMPLEX_UNIT_SP);modeLabels[i]=label;tile.addView(label,new LayoutParams(-1,0,1));
             TextView note=text("Estimating…",10.5f,MUTED,false);note.setGravity(Gravity.CENTER);note.setSingleLine(true);note.setAutoSizeTextTypeUniformWithConfiguration(9,11,1,TypedValue.COMPLEX_UNIT_SP);modeNotes[i]=note;add(tile,note,16);
             tap(tile,()->choose(index));
-        }FrameLayout tileHost=new FrameLayout(a);tileHost.addView(tiles,new FrameLayout.LayoutParams(-1,dp(122)));lens=new SelectionLens();tileHost.addView(lens,new FrameLayout.LayoutParams(-1,-1));lens.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);add(main,tileHost,122);space(main,21);
+        }FrameLayout tileHost=new FrameLayout(a);tileHost.addView(tiles,new FrameLayout.LayoutParams(-1,dp(122)));lens=new SelectionLens();tileHost.addView(lens,new FrameLayout.LayoutParams(-1,-1));lens.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);add(main,tileHost,122);space(main,12);
+        TextView modeExplanation=text("Balanced: Light · High performance: Standard",11,MUTED,false);modeExplanation.setGravity(Gravity.CENTER);add(main,modeExplanation,-2);space(main,12);
         LinearLayout superRow=row();LinearLayout superText=col();add(superText,text("Super power saving mode",18,WHITE,false),-2);space(superText,5);superNote=text("Uses Samsung Power saving",13,MUTED,false);add(superText,superNote,-2);superRow.addView(superText,new LayoutParams(0,-2,1));superSwitch=new Switch(uiContext);superSwitch.setShowText(false);superSwitch.setThumbTintList(ColorStateList.valueOf(WHITE));superSwitch.setTrackTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{0xff43af54,0xff555555}));superSwitch.setContentDescription("Super power saving mode (Samsung Power saving)");superRow.addView(superSwitch,new LayoutParams(-2,-2));add(main,superRow,-2);superSwitch.setOnCheckedChangeListener((b,checked)->{if(!syncingSwitch)choose(checked?1:engine.normalMode());});tap(superText,()->{if(!busy)choose(engine.isSaving()?engine.normalMode():1);});space(main,15);line(main);space(main,14);
         item(main,"Adaptive battery","Intelligently extends battery life based on your usage patterns and activity.",()->openNative("com.samsung.android.sm.battery.ui.setting.AdaptiveBatteryMenuActivity"));space(main,22);
         item(main,"Battery health",null,this::health);
@@ -128,12 +132,14 @@ final class Dashboard extends LinearLayout {
         LinearLayout assistant=card();LinearLayout ar=row();Symbol ai=new Symbol(4,WHITE);ar.addView(ai,new LayoutParams(dp(35),dp(38)));LinearLayout at=col();LayoutParams ap=new LayoutParams(0,-2,1);ap.leftMargin=dp(14);ar.addView(at,ap);add(at,text("AI Battery Assistant",18,WHITE,false),-2);space(at,6);TextView info=text("See live battery insights and charging status.",14,MUTED,false);assistantSummary=info;info.setLineSpacing(dp(3),1);add(at,info,-2);ar.addView(chevron(),new LayoutParams(dp(20),dp(32)));add(assistant,ar,-2);tap(ar,this::showInsights);add(body,assistant,-2);
         space(body,26);section(body,"Battery usage");
         LinearLayout usage=card();LinearLayout tabs=row();tabs.setBackground(shape(TILE,22));tabs.setPadding(dp(4),dp(4),dp(4),dp(4));String[] ranges={"Today","Last 7 days"};for(int i=0;i<2;i++){final int ix=i;TextView t=text(ranges[i],14,WHITE,false);t.setGravity(Gravity.CENTER);if(i==0)t.setBackground(shape(0xff555555,18));tabs.addView(t,new LayoutParams(0,dp(36),1));tap(t,()->openNative(ix==0?"com.samsung.android.sm.battery.ui.graph.LastChargeGraphActivity":"com.samsung.android.sm.battery.ui.graph.DailyUsageGraphActivity"));}add(usage,tabs,-2);space(usage,16);add(usage,text("View real battery usage in Samsung's graphs",14,MUTED,false),-2);space(usage,14);item(usage,"Open original battery statistics",null,original);add(body,usage,-2);
-        space(body,22);section(body,"Live battery monitor");LinearLayout monitor=card();
+        space(body,22);section(body,"Charging mode");addChargingModes(body);space(body,22);section(body,"Live battery monitor");LinearLayout monitor=card();
         LinearLayout metrics=row();liveTemp=metric(metrics,"Temperature");liveVoltage=metric(metrics,"Voltage");add(monitor,metrics,-2);space(monitor,16);line(monitor);space(monitor,16);
-        LinearLayout metrics2=row();liveCurrent=metric(metrics2,"Battery current");liveCharge=metric(metrics2,"Remaining charge");add(monitor,metrics2,-2);space(monitor,18);
+        LinearLayout metrics2=row();liveCurrent=metric(metrics2,"Battery current");liveCharge=metric(metrics2,"Charge stored");add(monitor,metrics2,-2);space(monitor,18);
+        chargeNeeded=text("Charge needed to 100%: —",13,MUTED,false);add(monitor,chargeNeeded,-2);space(monitor,12);
         liveSession=text("Connect a charger to start monitoring",13,WHITE,false);add(monitor,liveSession,-2);space(monitor,12);
         powerGraph=new PowerGraph();add(monitor,powerGraph,84);space(monitor,8);liveSource=text("Measured battery power · current page only",11,MUTED,false);add(monitor,liveSource,-2);space(monitor,16);
         item(monitor,"Detailed battery diagnostics",null,this::chargingInfo);add(body,monitor,-2);
+        space(body,22);section(body,"Custom features");LinearLayout custom=card();thermalNote=text(thermalLimit==0?"Disabled · only while this page is open":"Warn at "+thermalLimit+" °C · while this page is open",13,MUTED,false);item(custom,"Battery temperature alert",null,this::chooseThermalAlert);space(custom,5);add(custom,thermalNote,-2);add(body,custom,-2);
         space(body,22);section(body,"Battery settings");LinearLayout settings=card();
         nativeItem(settings,"Power saving settings","com.samsung.android.sm.powermode.ui.PowerModeSettingsActivity");
         nativeItem(settings,"Charging settings","com.samsung.android.sm.battery.ui.BatteryAdvancedMenuActivity");
@@ -191,7 +197,10 @@ final class Dashboard extends LinearLayout {
     private String capacity(ChargeTelemetry.Reading r){return r.counter>0?String.format(Locale.US,"%.0f mAh",r.counter/1000f):"—";}
     private void updateMonitor(ChargeTelemetry.Reading r){
         lastReading=r;if(liveTemp==null)return;
-        liveTemp.setText(temperature(r));liveVoltage.setText(voltage(r));liveCurrent.setText(current(r.ua));liveCharge.setText(capacity(r));
+        liveTemp.setText(temperature(r));liveVoltage.setText(voltage(r));liveCurrent.setText(Double.isFinite(r.effectiveUa)?String.format(Locale.US,"%s%.2f A",r.estimated?"≈ ":"",r.effectiveUa/1000000d):Math.abs((long)r.ua)>=50000&&r.ua!=Integer.MIN_VALUE?current(r.ua):"—");liveCharge.setText(capacity(r));
+        if(chargeNeeded!=null){double full=r.percent>=10&&r.counter>0?r.counter*100d/r.percent:Double.NaN;chargeNeeded.setText(Double.isFinite(full)&&full>=1000000&&full<=20000000?"Charge needed to 100%: ≈ "+String.format(Locale.US,"%.0f mAh",Math.max(0,full-r.counter)/1000):"Charge needed to 100%: unavailable");}
+        if(thermalLimit>0&&r.temp!=Integer.MIN_VALUE){boolean hot=r.temp>=thermalLimit*10;if(hot&&!thermalWarned&&hasWindowFocus()){thermalWarned=true;Toast.makeText(a,"Battery temperature reached "+temperature(r)+". Charging may slow down.",Toast.LENGTH_LONG).show();}else if(!hot&&r.temp<(thermalLimit-1)*10)thermalWarned=false;}
+        refreshChargingPolicy();
         liveSession.setText(r.plugged?"Monitoring "+r.visibleSeconds/60+" min "+r.visibleSeconds%60+" s"+(r.gained>=0?" · +"+r.gained+"%":"")+(Double.isNaN(r.peak)?"":" · peak "+String.format(Locale.US,"%.1f W",r.peak)):"Connect a charger to start monitoring");
         liveSource.setText(r.plugged?r.source+" · recent measured samples":"Battery-side power · no active session");
         powerGraph.update(r.history);
@@ -208,9 +217,29 @@ final class Dashboard extends LinearLayout {
             Path fill=new Path(path);fill.lineTo(w-pad,h);fill.lineTo(pad,h);fill.close();p.setStyle(Paint.Style.FILL);p.setShader(new LinearGradient(0,0,0,h,0x55168cf4,0x00168cf4,Shader.TileMode.CLAMP));c.drawPath(fill,p);p.setShader(null);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(2));p.setColor(BLUE);p.setStrokeJoin(Paint.Join.ROUND);p.setStrokeCap(Paint.Cap.ROUND);c.drawPath(path,p);p.setStyle(Paint.Style.FILL);
         }
     }
+    private void chooseThermalAlert(){
+        int[] values={0,40,42,45};String[] names={"Disabled","40 °C","42 °C","45 °C"};int checked=0;for(int i=0;i<values.length;i++)if(values[i]==thermalLimit)checked=i;
+        new AlertDialog.Builder(a).setTitle("Battery temperature alert").setSingleChoiceItems(names,checked,(d,w)->{thermalLimit=values[w];thermalWarned=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("thermal_alert",thermalLimit).apply();thermalNote.setText(thermalLimit==0?"Disabled · only while this page is open":"Warn at "+thermalLimit+" °C · while this page is open");d.dismiss();}).setNegativeButton("Cancel",null).show();
+    }
+    private void addChargingModes(LinearLayout body){
+        LinearLayout c=card(),r=row();String[] titles={"Standard\ncharging","Fast & Super fast\ncharging"};String[] desc={"Normal speed","Automatically negotiated"};
+        for(int i=0;i<2;i++){final int mode=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER);tile.setPadding(dp(6),dp(9),dp(6),dp(9));chargingTiles[i]=tile;TextView z=text(i==0?"ϟ":"ϟϟ",23,WHITE,true);z.setGravity(Gravity.CENTER);add(tile,z,28);TextView title=text(titles[i],13,WHITE,false);title.setGravity(Gravity.CENTER);title.setMaxLines(3);chargingTitles[i]=title;add(tile,title,48);TextView sub=text(desc[i],10,MUTED,false);sub.setGravity(Gravity.CENTER);sub.setMaxLines(2);add(tile,sub,30);LayoutParams lp=new LayoutParams(0,dp(119),1);if(i>0)lp.leftMargin=dp(10);r.addView(tile,lp);tap(tile,()->selectChargingPolicy(mode));}
+        add(c,r,-2);space(c,12);chargePolicyNote=text("Reading Samsung charging setting",12,MUTED,false);add(c,chargePolicyNote,-2);space(c,14);item(c,"More charging settings",null,()->openNative("com.samsung.android.sm.battery.ui.BatteryAdvancedMenuActivity"));add(body,c,-2);refreshChargingPolicy();
+    }
+    private void refreshChargingPolicy(){
+        if(chargingTiles[0]==null)return;int state=chargingPolicy.read();
+        for(int i=0;i<2;i++){boolean active=state==i;GradientDrawable bg=shape(active?0xff16291b:TILE,22);if(active)bg.setStroke(dp(1),0xff66d66e);chargingTiles[i].setBackground(bg);chargingTitles[i].setTextColor(active?GREEN:WHITE);}
+        if(chargePolicyNote!=null)chargePolicyNote.setText(state<0?"Open native settings to configure charging":state==0?"Fast charging disabled":"Fast / Super fast enabled · charger, battery and temperature determine actual speed");
+    }
+    private void selectChargingPolicy(int mode){
+        if(chargingPolicy.read()<0){openNative("com.samsung.android.sm.battery.ui.BatteryAdvancedMenuActivity");return;}
+        if(chargingPolicy.read()==mode)return;
+        if(pluggedIn){dialog("Charging mode","Unplug the charger before changing charging speed, then reconnect it.");return;}
+        boolean ok=chargingPolicy.apply(mode);refreshChargingPolicy();if(!ok)Toast.makeText(a,"Samsung did not confirm the charging mode. Use original Charging settings.",Toast.LENGTH_LONG).show();else{chargingTiles[mode].setAlpha(.65f);chargingTiles[mode].animate().alpha(1).setDuration(280).start();}
+    }
     private void chargingInfo(){
         ChargeTelemetry.Reading r=telemetry.read();
-        dialog("Battery diagnostics", "Battery power: "+(r.wattsText==null?"Unavailable":r.wattsText)+"\nSource: "+r.source+"\nVoltage: "+voltage(r)+"\nRaw current: "+current(r.ua)+"\nAverage current: "+current(r.average)+"\nRemaining charge: "+capacity(r)+"\nTemperature: "+temperature(r)+"\nCycle count: "+(r.cycles<0?"Unavailable":r.cycles)+"\n\nBattery-side power is not charger output. A magnitude reading has unverified direction until the charge counter confirms polarity.");
+        dialog("Battery diagnostics", "Battery power: "+(r.wattsText==null?"Unavailable":r.wattsText)+"\nSource: "+r.source+"\nVoltage: "+voltage(r)+"\nRaw current: "+current(r.ua)+"\nAverage current: "+current(r.average)+"\nFuel gauge current: "+current(r.sysfsCurrent)+"\nCharge stored: "+capacity(r)+"\nTemperature: "+temperature(r)+"\nCycle count: "+(r.cycles<0?"Unavailable":r.cycles)+"\n\nBattery-side power is not charger output. A magnitude reading has unverified direction until the charge counter confirms polarity.");
     }
     // Only the hooked BatteryActivity window; no global status bar settings.
     void ensureBars(){
@@ -306,7 +335,7 @@ final class Dashboard extends LinearLayout {
             if(initial<0||Math.abs(initial-to)<.001f){slot=to;moving=false;progress=1;invalidate();return;}
             moving=true;progress=0;travel=to-initial;capture();
             final float start=initial;
-            slideMotion=ValueAnimator.ofFloat(0f,1f);slideMotion.setDuration(460);slideMotion.setInterpolator(new PathInterpolator(.20f,.70f,.19f,1f));
+            slideMotion=ValueAnimator.ofFloat(0f,1f);slideMotion.setDuration(520);slideMotion.setInterpolator(new PathInterpolator(.20f,.70f,.19f,1f));
             slideMotion.addUpdateListener(v->{progress=(float)v.getAnimatedValue();slot=start+travel*progress;invalidate();});
             slideMotion.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator animation){moving=false;slot=to;progress=1;release();invalidate();}});
             slideMotion.start();
@@ -315,17 +344,17 @@ final class Dashboard extends LinearLayout {
         @Override protected void onDraw(Canvas c){
             if(slot<0||tileRow==null||modes[0].getWidth()==0)return;
             float wave=moving?(float)Math.sin(Math.PI*progress):0,w=modes[0].getWidth(),step=modes[1].getLeft()-modes[0].getLeft(),x=modes[0].getLeft()+slot*step;
-            float stretch=dp(8)*wave,shift=dp(3)*wave*Math.signum(travel);rect.set(x+dp(1)-stretch+shift,dp(1)+dp(2)*wave,x+w-dp(1)+stretch+shift,getHeight()-dp(1)-dp(2)*wave);float r=dp(22);
-            p.setStyle(Paint.Style.FILL);p.setShader(new LinearGradient(rect.left,rect.top,rect.right,rect.bottom,new int[]{0x3a216b29,0x24102914,0x3d25682e},new float[]{0,.50f,1},Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
+            float stretch=dp(12)*wave,shift=dp(4)*wave*Math.signum(travel);rect.set(x+dp(1)-stretch+shift,dp(1)+dp(2)*wave,x+w-dp(1)+stretch+shift,getHeight()-dp(1)-dp(2)*wave);float r=dp(22);
+            p.setStyle(Paint.Style.FILL);p.setShader(new LinearGradient(rect.left,rect.top,rect.right,rect.bottom,new int[]{0x70215c29,0x42102914,0x64265b2b},new float[]{0,.50f,1},Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
             if(moving&&optical!=null&&c.isHardwareAccelerated()){
-                try{optical.setFloatUniform("box",rect.centerX(),rect.centerY(),rect.width()/2,rect.height()/2);optical.setFloatUniform("radius",r);optical.setFloatUniform("depth",dp(9));p.setShader(optical);c.drawRoundRect(rect,r,r,p);p.setShader(null);}catch(Throwable e){shaderFailed=true;release();BatteryHook.log("glass draw fallback: "+e);}
+                try{optical.setFloatUniform("box",rect.centerX(),rect.centerY(),rect.width()/2,rect.height()/2);optical.setFloatUniform("radius",r);optical.setFloatUniform("depth",dp(13));p.setShader(optical);c.drawRoundRect(rect,r,r,p);p.setShader(null);}catch(Throwable e){shaderFailed=true;release();BatteryHook.log("glass draw fallback: "+e);}
             }else if(moving&&wave>0){
                 p.setShader(new RadialGradient(rect.centerX(),rect.bottom,Math.max(1,rect.width()),new int[]{0x2424cf37,0x0024cf37},null,Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
             }
             // Beveled edge: wide low-intensity body, hairline rim, and interior specular edge.
-            p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(3));p.setColor(0x2624c939);inner.set(rect);inner.inset(dp(1.5f),dp(1.5f));c.drawRoundRect(inner,r-dp(1.5f),r-dp(1.5f),p);
-            p.setStrokeWidth(dp(1.15f));p.setShader(new LinearGradient(rect.left,rect.top,rect.right,rect.bottom,new int[]{0xc185ee79,0x802dc333,0x691d7726,0xcb94e68b},new float[]{0,.27f,.68f,1},Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
-            inner.set(rect);inner.inset(dp(3),dp(3));p.setStrokeWidth(dp(.75f));p.setShader(new LinearGradient(inner.left,inner.top,inner.right,inner.bottom,new int[]{0x619aff96,0x00146220,0x0086ff7e,0x4293ff83},new float[]{0,.36f,.68f,1},Shader.TileMode.CLAMP));c.drawRoundRect(inner,r-dp(3),r-dp(3),p);p.setShader(null);p.setStyle(Paint.Style.FILL);
+            p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(4));p.setColor(0x4024c939);inner.set(rect);inner.inset(dp(1.5f),dp(1.5f));c.drawRoundRect(inner,r-dp(1.5f),r-dp(1.5f),p);
+            p.setStrokeWidth(dp(1.15f));p.setShader(new LinearGradient(rect.left,rect.top,rect.right,rect.bottom,new int[]{0xff86ef79,0x9e2dc333,0x891d7726,0xef94e68b},new float[]{0,.27f,.68f,1},Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
+            inner.set(rect);inner.inset(dp(3),dp(3));p.setStrokeWidth(dp(1));p.setShader(new LinearGradient(inner.left,inner.top,inner.right,inner.bottom,new int[]{0x969aff96,0x00146220,0x0086ff7e,0x7893ff83},new float[]{0,.36f,.68f,1},Shader.TileMode.CLAMP));c.drawRoundRect(inner,r-dp(3),r-dp(3),p);p.setShader(null);p.setStyle(Paint.Style.FILL);
         }
     }
     private final class Gauge extends View {
