@@ -31,7 +31,7 @@ final class ProtectionCard extends LinearLayout {
     private void gap(LinearLayout p,int h){p.addView(new View(a),new LayoutParams(1,dp(h)));}
     ProtectionCard(Activity activity,Runnable nativePage,java.util.function.IntSupplier style,java.util.function.BooleanSupplier quiet,java.util.function.IntUnaryOperator duration,java.util.function.BooleanSupplier haptics){
         super(activity);a=activity;this.nativePage=nativePage;this.haptics=haptics;setOrientation(VERTICAL);setBackground(shape(0xff1b1b1b,25,false));setPadding(dp(18),dp(16),dp(18),dp(16));
-        LinearLayout head=new LinearLayout(a);head.setGravity(Gravity.CENTER_VERTICAL);TextView name=text("Battery protection",18,WHITE);head.addView(name,new LayoutParams(0,-2,1));enabled=new Switch(a);enabled.setContentDescription("Battery protection");head.addView(enabled,new LayoutParams(-2,-2));add(this,head);
+        LinearLayout head=new LinearLayout(a);head.setGravity(Gravity.CENTER_VERTICAL);TextView name=text("Battery protection",18,WHITE);head.addView(name,new LayoutParams(0,-2,1));enabled=new Switch(a);enabled.setThumbTintList(ColorStateList.valueOf(WHITE));enabled.setTrackTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{0xff43af54,0xff555555}));enabled.setContentDescription("Battery protection");head.addView(enabled,new LayoutParams(-2,-2));add(this,head);
         status=text("",13,MUTE);add(this,status);gap(this,14);
         choices=new LinearLayout(a);choices.setOrientation(VERTICAL);
         LinearLayout modes=new LinearLayout(a);basic=text("Basic",15,WHITE);max=text("Maximum",15,WHITE);

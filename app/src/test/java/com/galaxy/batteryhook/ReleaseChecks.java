@@ -32,4 +32,6 @@ public class ReleaseChecks {
     @Test public void newerReadCanReflectRealIncrement(){HealthReader.Reading a=new HealthReader.Reading(),b=new HealthReader.Reading();HealthReader.parseDump(a,"battery_cycle: 793","service");HealthReader.parseDump(b,"battery_cycle: 794","service");assertEquals(793,a.cycles);assertEquals(794,b.cycles);}
     @Test public void zeroAndAmbiguousArraysNotInvented(){HealthReader.Reading r=new HealthReader.Reading();HealthReader.parseDump(r,"mSavedBatteryAsoc: [90, 93]\ncycle_count: 0\nmSavedBatteryUsage: [0]","service");HealthReader.resolveCycles(r);assertEquals(-1,r.main());assertEquals(-1,r.cycles);}
     @Test public void standardCycleFieldIsAValidFallback(){HealthReader.Reading r=new HealthReader.Reading();HealthReader.parseDump(r,"cycle_count: [201]","service");assertEquals(201,r.cycles);}
+    @Test public void glassLabelsFollowVisualPosition(){assertEquals(1f,GlassMath.coverage(1,1),0f);assertEquals(0f,GlassMath.coverage(-1,0),0f);assertEquals(0f,GlassMath.coverage(1,0),0f);assertEquals(.5f,GlassMath.coverage(.5f,0),0f);assertEquals(.5f,GlassMath.coverage(.5f,1),0f);}
+    @Test public void labelColorTransferIsContinuous(){float prev=0;for(int i=0;i<=100;i++){float v=GlassMath.coverage(i/100f,1);assertTrue(v>=prev);assertTrue(v-prev<.02f);assertEquals(1f,v+GlassMath.coverage(i/100f,0),.00001f);prev=v;}}
 }

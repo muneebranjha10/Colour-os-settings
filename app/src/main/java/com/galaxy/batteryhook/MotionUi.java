@@ -49,9 +49,10 @@ final class MotionUi {
         if(v==null)return;v.animate().cancel();if(quiet||!enabled()){restore(v);return;}
         float shift=PageMotion.parallax(v.getWidth(),returning);v.animate().translationX(shift).scaleX(returning?1:.985f).scaleY(returning?1:.985f).alpha(returning?1:.82f).setDuration(PageMotion.time(duration,false)).setInterpolator(ENTER).start();
     }
-    static void panel(Dialog dialog,int duration,boolean quiet){
-        if(!enabled())return;Window w=dialog.getWindow();if(w==null)return;View content=w.findViewById(android.R.id.content);if(content==null)return;
-        content.setAlpha(.15f);if(!quiet){content.setScaleX(.96f);content.setScaleY(.96f);content.setTranslationY(10*content.getResources().getDisplayMetrics().density);}
-        content.animate().alpha(1).scaleX(1).scaleY(1).translationY(0).setDuration(PageMotion.time(duration,quiet)).setInterpolator(ENTER).start();
+    // Use one native window transition in both directions; never animate a second
+    // content layer over the system dialog transition.
+    static void preparePanel(Dialog dialog,boolean quiet){
+        Window w=dialog.getWindow();if(w==null)return;
+        w.setWindowAnimations(quiet||!enabled()?0:android.R.style.Animation_Dialog);
     }
 }

@@ -9,5 +9,6 @@ final class GlassMath {
     static float railHead(float t){return ease(clamp(t/.88f,0,1));}
     static float railTail(float t){return ease(clamp((t-.13f)/.87f,0,1));}
     static float thumbFraction(float progress,boolean rtl){float f=clamp(progress/MAX_PROGRESS,0,1);return rtl?1-f:f;}
+    static float coverage(float slot,int tile){if(slot<0)return 0;float t=clamp(1-Math.abs(slot-tile),0,1);return t*t*(3-2*t);}
     static float between(float a,float b,float fraction){return a+(b-a)*fraction;}
 }

@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application android:label="ColourOS Battery" android:icon="@drawable/ic_battery_brand" android:roundIcon="@drawable/ic_battery_brand" android:allowBackup="false" android:hasCode="true">
         <meta-data android:name="xposedmodule" android:value="true" />
-        <meta-data android:name="xposeddescription" android:value="ColourOS Battery 1.1 RC8 — Made by Muneeb" />
+        <meta-data android:name="xposeddescription" android:value="ColourOS Battery 1.1 RC9 — Made by Muneeb" />
         <meta-data android:name="xposedminversion" android:value="82" />
         <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
     </application>

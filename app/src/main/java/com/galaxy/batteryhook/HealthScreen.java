@@ -119,7 +119,7 @@ final class HealthScreen {
             HealthReader.Reading parsed=new HealthReader.Reading();HealthReader.parseDump(parsed,edit.getText().toString(),"Imported diagnostic");
             HealthReader.resolveCycles(parsed);if(parsed.asoc<0&&parsed.savedAsoc<0&&parsed.bsoh<0&&parsed.cycles<0){Toast.makeText(a,"No valid health or cycle field found",Toast.LENGTH_LONG).show();return;}
             generation++;loading=false;refreshHandler.removeCallbacks(autoRead);if(reading==null)reading=new HealthReader.Reading();if(parsed.asoc>=0){reading.asoc=parsed.asoc;reading.asocSource=parsed.asocSource;}if(parsed.savedAsoc>=0){reading.savedAsoc=parsed.savedAsoc;reading.savedAsocSource=parsed.savedAsocSource;}if(parsed.bsoh>=0){reading.bsoh=parsed.bsoh;reading.bsohSource=parsed.bsohSource;}if(parsed.maxTemp>=0)reading.maxTemp=parsed.maxTemp;if(parsed.cycles>=0){reading.cycles=parsed.cycles;reading.cycleSource="Manual snapshot · "+parsed.cycleSource;}reading.imported=true;reading.readTime=System.currentTimeMillis();render();
-        }).create();importDialog.show();MotionUi.panel(importDialog,Math.max(120,duration/2),quiet);
+        }).create();MotionUi.preparePanel(importDialog,quiet);importDialog.show();
     }
     private final class Gauge extends View{
         final Paint p=new Paint(3);final RectF rect=new RectF();final Typeface bold=Typeface.create(font==null?Typeface.DEFAULT:font,600,false);int value=-1;float progress;String label="Reading…";
