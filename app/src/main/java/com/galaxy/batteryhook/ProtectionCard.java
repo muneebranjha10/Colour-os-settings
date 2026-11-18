@@ -41,7 +41,7 @@ final class ProtectionCard extends LinearLayout {
         LinearLayout labels=new LinearLayout(a);for(int i=0;i<4;i++){final int n=i;TextView t=text((80+i*5)+"%",12,MUTE);t.setGravity(Gravity.CENTER);labels.addView(t,new LayoutParams(0,-2,1));t.setOnClickListener(v->{if(readMode()==1){setLimit(80+5*n);}});MotionUi.ripple(t);}add(choices,labels);add(this,choices);gap(this,12);
         TextView more=text("Original Samsung protection settings  ›",14,WHITE);more.setPadding(0,dp(8),0,dp(4));more.setOnClickListener(v->nativePage.run());add(this,more);
         enabled.setOnCheckedChangeListener((b,value)->{if(binding)return;int current=readMode();if(current<0||current==4){refresh();nativePage.run();return;}if(!value&&current>0)remembered=current;setMode(value?remembered:0);});
-        basic.setOnClickListener(v->setMode(3));max.setOnClickListener(v->setMode(1));MotionUi.ripple(basic);MotionUi.ripple(max);MotionUi.ripple(more);
+        basic.setOnClickListener(v->setMode(3));max.setOnClickListener(v->setMode(1));MotionUi.glassTouch(basic,15);MotionUi.glassTouch(max,15);MotionUi.ripple(more);
         slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
             @Override public void onStartTrackingTouch(SeekBar b){dragging=true;slider.beginDrag();}
             @Override public void onProgressChanged(SeekBar b,int progress,boolean fromUser){if(fromUser&&!binding){int limit=GlassMath.limitForProgress(progress);slider.preview(progress);status.setText("Maximum protection · preview "+limit+"%");desc.setText("Release to set "+limit+"%");if(!dragging&&readMode()==1)setLimit(limit);}}

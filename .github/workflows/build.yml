@@ -34,23 +34,41 @@ jobs:
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
           print('Twenty or more regression checks passed')
           PY
+      - name: Verify glass touch wiring
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('app/src/main/java/com/galaxy/batteryhook')
+          dashboard=(root/'Dashboard.java').read_text()
+          protection=(root/'ProtectionCard.java').read_text()
+          motion=(root/'MotionUi.java').read_text()
+          for needle in ('tapGlass(tile,22,()->choose(index))','tapGlass(tile,22,()->selectChargingPolicy(mode))','tapGlass(t,15,()->openUsage(ix))','MotionUi.glassTouch(v,radius)'):
+              assert needle in dashboard, needle
+          for name in ('basic','max'):
+              assert f'MotionUi.glassTouch({name},15)' in protection
+              assert f'MotionUi.ripple({name})' not in protection
+          assert 'null,new ColorDrawable(Color.WHITE)' not in motion
+          assert 'null,rounded(v,14,Color.WHITE)' in motion
+          assert 'state_focused,-android.R.attr.state_pressed' in motion
+          print('Rounded touch feedback and glass selector wiring verified')
+          PY
       - name: Verify APK and Xposed entry
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC5.apk
+          cp "$APK" ColourOS-Battery-RC6.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC5.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-RC6.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC5-APK
+          name: GalaxyBattery-RC6-APK
           path: |
-            ColourOS-Battery-RC5.apk
+            ColourOS-Battery-RC6.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc5-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC5.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC5 | Made by Muneeb" --notes-file docs/RELEASE-RC5.md --prerelease
+          TAG=rc6-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC6.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC6 | Made by Muneeb" --notes-file docs/RELEASE-RC6.md --prerelease
