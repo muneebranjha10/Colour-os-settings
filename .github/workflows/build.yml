@@ -1,4 +1,4 @@
-name: Build stage 1 APK
+name: Build stage 2 APK
 on:
   workflow_dispatch:
   push:
@@ -29,14 +29,14 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-Stage1.apk
+          cp "$APK" ColourOS-Battery-Stage2.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-Stage1-APK
-          path: ColourOS-Battery-Stage1.apk
+          name: GalaxyBattery-Stage2-APK
+          path: ColourOS-Battery-Stage2.apk
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=stage1-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-Stage1.apk --target "$GITHUB_SHA" --title "Stage 1 integration test" --notes "Experimental LSPosed hook test. Enable only Device Care scope. No Battery UI redesign yet." --prerelease
+          TAG=stage2-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-Stage2.apk --target "$GITHUB_SHA" --title "Stage 2 integration test" --notes "Native dashboard visual test. Scope only Device Care. Unsupported controls remain unavailable." --prerelease
