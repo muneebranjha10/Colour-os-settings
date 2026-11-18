@@ -22,4 +22,7 @@ public class ReleaseChecks {
     @Test public void chargeLimitProgressRoundTrips(){for(int n=80;n<=95;n+=5)assertEquals(n,GlassMath.limitForProgress(GlassMath.progressForLimit(n)));}
     @Test public void sliderMirrorsRtl(){assertEquals(0f,GlassMath.thumbFraction(0,false),0);assertEquals(1f,GlassMath.thumbFraction(0,true),0);assertEquals(.5f,GlassMath.thumbFraction(150,true),0);assertEquals(0f,GlassMath.thumbFraction(300,true),0);}
     @Test public void springHasExactEndpointsAndBoundedLeadingEdge(){assertEquals(0f,GlassMath.railHead(0),0);assertEquals(1f,GlassMath.railHead(1),0);assertEquals(1f,GlassMath.railTail(1),0);for(int i=0;i<=100;i++)assertTrue(GlassMath.railHead(i/100f)<=1.035f);}
+    @Test public void colorOsGlassUsesNeutralBodyAndRim(){for(int style=0;style<3;style++){for(int c:ColorOsPalette.body(style))assertTrue(ColorOsPalette.chroma(c)<=6);for(int c:ColorOsPalette.edge(style))assertTrue(ColorOsPalette.chroma(c)<=8);for(int c:ColorOsPalette.thumb(style))assertTrue(ColorOsPalette.chroma(c)<=8);}}
+    @Test public void accentRemainsSeparateFromNeutralGlass(){assertTrue(ColorOsPalette.chroma(ColorOsPalette.ACCENT)>80);}
+    @Test public void healthExitIsShortAndBounded(){assertEquals(189,PageMotion.healthExit(230,false));assertEquals(100,PageMotion.healthExit(230,true));assertEquals(240,PageMotion.healthExit(1000,false));assertEquals(100,PageMotion.healthExit(20,false));}
 }

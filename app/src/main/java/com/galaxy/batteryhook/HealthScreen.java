@@ -27,17 +27,16 @@ import java.util.Locale;
 final class HealthScreen {
     private final Activity a;
     private final Runnable protection,onClosed;
-    private final int duration;private final boolean quiet;private final java.util.function.Consumer<Boolean> parallax;
+    private final int duration;private final boolean quiet;private final android.widget.FrameLayout host;
     private final Typeface font;
-    private Dialog dialog;
     private LinearLayout root,page,details;private View headerView;private ScrollView scrollView;private boolean closing,closed,loading;private Runnable afterClose;private android.window.OnBackInvokedCallback backCallback;
     private Gauge gauge;
     private TextView source,summary;
     private HealthReader.Reading reading;
     private int generation;
     private ValueAnimator animation;
-    private static final int WHITE=0xffeeeeee,MUTE=0xffa5a5a5,GREEN=0xff36d54b,CARD=0xff1b1b1b;
-    HealthScreen(Activity a,Runnable protection,int duration,boolean quiet,Runnable onClosed,java.util.function.Consumer<Boolean> parallax){this.a=a;this.protection=protection;this.duration=duration;this.quiet=quiet;this.onClosed=onClosed;this.parallax=parallax;font=new TextView(a).getTypeface();}
+    private static final int WHITE=0xffeeeeee,MUTE=0xffa5a5a5,GREEN=ColorOsPalette.ACCENT,CARD=0xff1b1b1b;
+    HealthScreen(Activity a,android.widget.FrameLayout host,Runnable protection,int duration,boolean quiet,Runnable onClosed){this.a=a;this.host=host;this.protection=protection;this.duration=duration;this.quiet=quiet;this.onClosed=onClosed;font=new TextView(a).getTypeface();}
     private int dp(float n){return Math.round(n*a.getResources().getDisplayMetrics().density);}
     private LinearLayout col(){LinearLayout l=new LinearLayout(a);l.setOrientation(LinearLayout.VERTICAL);return l;}
     private TextView text(String title,int sp,int color,boolean bold){TextView t=new TextView(a);t.setText(title);t.setTextColor(color);t.setTextSize(sp);t.setTypeface(Typeface.create(font==null?Typeface.DEFAULT:font,bold?600:400,false));return t;}
@@ -47,11 +46,10 @@ final class HealthScreen {
     private LinearLayout card(){LinearLayout c=col();c.setBackground(bg(CARD,23));c.setPadding(dp(18),dp(14),dp(18),dp(14));return c;}
     private void action(LinearLayout parent,String title,String sub,Runnable event){LinearLayout r=col();add(r,text(title,17,WHITE,false),-2);if(sub!=null)add(r,text(sub,13,MUTE,false),-2);r.setPadding(0,dp(10),0,dp(10));r.setClickable(true);r.setFocusable(true);MotionUi.ripple(r);r.setOnClickListener(v->{if(!closing)event.run();});add(parent,r,-2);}
     void show(){
-        dialog=new Dialog(a,android.R.style.Theme_Material_NoActionBar){
-            @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus&&root!=null&&!closing)WindowBars.schedule(getWindow(),root);}
-            @Override public void onBackPressed(){close(null);}
-        };dialog.setCanceledOnTouchOutside(false);
-        root=col();root.setBackgroundColor(Color.TRANSPARENT);page=col();page.setBackgroundColor(Color.BLACK);root.addView(page,new LinearLayout.LayoutParams(-1,0,1));page.setAlpha(0f);
+        root=new LinearLayout(a){
+            @Override public boolean onInterceptTouchEvent(android.view.MotionEvent e){return closing||super.onInterceptTouchEvent(e);}
+        };root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(Color.BLACK);root.setClickable(true);root.setFocusableInTouchMode(true);
+        page=col();page.setBackgroundColor(Color.BLACK);root.addView(page,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout header=new LinearLayout(a);header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(dp(18),dp(6),dp(18),dp(6));
         TextView back=text("‹",30,WHITE,true);back.setGravity(Gravity.CENTER);back.setBackground(bg(0xff292929,24));back.setContentDescription("Back");MotionUi.ripple(back);back.setOnClickListener(v->close(null));header.addView(back,new LinearLayout.LayoutParams(dp(41),dp(41)));
         TextView title=text("Battery health",21,WHITE,true);LinearLayout.LayoutParams tl=new LinearLayout.LayoutParams(0,-2,1);tl.leftMargin=dp(12);header.addView(title,tl);
@@ -62,25 +60,31 @@ final class HealthScreen {
         details=card();add(content,details,-2);gap(content,17);
         LinearLayout care=card();action(care,"Battery protection","Open Samsung’s original charging protection settings",()->close(protection));action(care,"Import root diagnostic","Only needed when live readings are restricted",this::importReading);add(content,care,-2);
         gap(content,15);summary=text("Battery health is a firmware estimate, not a laboratory capacity test.",13,MUTE,false);add(content,summary,-2);
-        dialog.setContentView(root);
-        dialog.setOnDismissListener(v->finishDismiss());
-        Window w=dialog.getWindow();if(w!=null){w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));w.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);w.setWindowAnimations(0);}
-        dialog.show();
-        if(w!=null){w.setLayout(-1,-1);WindowBars.bind(w,root);WindowBars.schedule(w,root);}
-        if(android.os.Build.VERSION.SDK_INT>=33){try{backCallback=()->close(null);dialog.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_OVERLAY,backCallback);}catch(Throwable ignored){backCallback=null;}}
-        parallax.accept(false);
-        page.post(()->{if(!closing&&!closed&&dialog.isShowing())MotionUi.enter(page,duration,quiet,dp(54),0);});
+        // The health page shares the BatteryActivity window. There is no dialog-window
+        // dismissal, dashboard scaling or competing native window transition.
+        root.setAlpha(MotionUi.enabled()?0f:1f);host.addView(root,new android.widget.FrameLayout.LayoutParams(-1,-1));root.bringToFront();root.requestFocus();
+        WindowBars.bind(a.getWindow(),root);root.post(()->{if(!closed){WindowBars.schedule(a.getWindow(),root);root.requestApplyInsets();}});
+        if(android.os.Build.VERSION.SDK_INT>=33){try{backCallback=this::back;a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_OVERLAY,backCallback);}catch(Throwable ignored){backCallback=null;}}
+        if(MotionUi.enabled())root.animate().alpha(1).setDuration(PageMotion.time(duration,quiet)).setInterpolator(new android.view.animation.PathInterpolator(.2f,.65f,.3f,1f)).start();
         load();
     }
+    void back(){close(null);}
     private void close(Runnable next){
-        if(closing||closed)return;closing=true;afterClose=next;generation++;if(animation!=null)animation.cancel();parallax.accept(true);
-        MotionUi.exit(page,Math.max(100,Math.round(duration*.78f)),quiet,dp(64),0,()->{if(dialog!=null&&dialog.isShowing())dialog.dismiss();else finishDismiss();});
+        if(closing||closed)return;closing=true;afterClose=next;generation++;if(animation!=null)animation.cancel();
+        if(root==null||!root.isAttachedToWindow()||!MotionUi.enabled()){finishDismiss();return;}
+        root.animate().cancel();
+        root.animate().alpha(0).setDuration(PageMotion.healthExit(duration,quiet)).setInterpolator(new android.view.animation.PathInterpolator(.25f,.0f,.2f,1f)).withEndAction(this::finishDismiss).start();
     }
-    void closeNow(){if(closed)return;closing=true;afterClose=null;if(dialog!=null&&dialog.isShowing())dialog.dismiss();else finishDismiss();}
-    private void finishDismiss(){if(closed)return;closed=true;generation++;if(animation!=null)animation.cancel();if(page!=null)page.animate().cancel();if(backCallback!=null&&android.os.Build.VERSION.SDK_INT>=33){try{dialog.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);}catch(Throwable ignored){}backCallback=null;}onClosed.run();Runnable next=afterClose;afterClose=null;if(next!=null&&!a.isFinishing()&&!a.isDestroyed())next.run();}
+    void closeNow(){if(closed)return;closing=true;afterClose=null;finishDismiss();}
+    private void finishDismiss(){
+        if(closed)return;closed=true;generation++;if(animation!=null)animation.cancel();
+        if(backCallback!=null&&android.os.Build.VERSION.SDK_INT>=33){try{a.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);}catch(Throwable ignored){}backCallback=null;}
+        if(root!=null){root.animate().cancel();if(root.getParent()==host)host.removeView(root);}
+        onClosed.run();Runnable next=afterClose;afterClose=null;if(next!=null&&!a.isFinishing()&&!a.isDestroyed())next.run();
+    }
     private void load(){
         if(closing||loading)return;loading=true;final int token=++generation;source.setText("Reading battery health…");
-        new Thread(()->{HealthReader.Reading r=HealthReader.read(a);a.runOnUiThread(()->{if(token==generation&&dialog.isShowing()&&!closing){loading=false;reading=r;render();}});},"BatteryHealthRead").start();
+        new Thread(()->{HealthReader.Reading r=HealthReader.read(a);a.runOnUiThread(()->{if(token==generation&&!closed&&!closing&&root.isAttachedToWindow()){loading=false;reading=r;render();}});},"BatteryHealthRead").start();
     }
     private void field(String label,String value){
         LinearLayout r=new LinearLayout(a);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(0,dp(11),0,dp(11));
@@ -96,7 +100,7 @@ final class HealthScreen {
         String src=r.asoc>=0?r.asocSource:r.api>=0?"Android battery property 10":r.bsoh>=0?r.bsohSource:"No readable health source";
         source.setText(src+(r.imported?" · manual snapshot":""));
         boolean initial=details.getChildCount()==0;details.removeAllViews();field("Fuel gauge ASOC",value(r.asoc,"%"));field("Saved Samsung BSOH",value(r.bsoh,"%"));if(r.api>=0)field("Android SOH",value(r.api,"%"));field("Battery condition",status(r.status));field("Charge cycles",value(r.cycles,""));if(r.cycles>=0)field("Cycle count source",r.cycleSource);field("Design capacity",r.design<0?"Unavailable":r.design/1000+" mAh");field("Reported full capacity",r.full<0?"Unavailable":r.full/1000+" mAh");field("Temperature",temp(r.temp));field("Highest recorded temperature",temp(r.maxTemp));field("Voltage",r.mv<=0?"Unavailable":String.format(Locale.US,"%.2f V",r.mv/1000f));
-        if(initial&&!closing)MotionUi.enter(details,Math.max(120,duration),quiet,0,dp(12));
+        if(initial&&!closing)MotionUi.enter(details,Math.max(120,duration),quiet,0,0);
         summary.setText((r.temp>=420?"Battery is warm. Let it cool before prolonged fast charging.\n\n":"")+"ASOC and BSOH are separate estimates. Unavailable readings are never filled with guessed percentages.");
     }
     private void importReading(){

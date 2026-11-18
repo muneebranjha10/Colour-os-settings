@@ -24,15 +24,15 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Require all twenty regression checks
+      - name: Require all twenty-three regression checks
         run: |
           python3 - <<'PY'
           import glob,xml.etree.ElementTree as E
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           suites=[E.parse(f).getroot() for f in files]
-          assert sum(int(s.get('tests',0)) for s in suites)>=20
+          assert sum(int(s.get('tests',0)) for s in suites)>=23
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
-          print('Twenty or more regression checks passed')
+          print('Twenty-three or more regression checks passed')
           PY
       - name: Verify glass touch wiring
         run: |
@@ -52,23 +52,38 @@ jobs:
           assert 'state_focused,-android.R.attr.state_pressed' in motion
           print('Rounded touch feedback and glass selector wiring verified')
           PY
+      - name: Verify in-window health navigation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('app/src/main/java/com/galaxy/batteryhook')
+          health=(root/'HealthScreen.java').read_text()
+          dashboard=(root/'Dashboard.java').read_text()
+          hook=(root/'BatteryHook.java').read_text()
+          assert 'host.addView(root' in health and 'host.removeView(root)' in health
+          assert 'new Dialog(' not in health and 'parallax.accept' not in health
+          assert 'unregisterOnBackInvokedCallback(backCallback)' in health
+          assert 'handleHealthBack()' in dashboard and 'handleHealthBack()' in hook
+          assert 'healthScreen==null&&isAttachedToWindow()' in dashboard
+          print('Health page navigation wiring verified')
+          PY
       - name: Verify APK and Xposed entry
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC6.apk
+          cp "$APK" ColourOS-Battery-RC7.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC6.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-RC7.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC6-APK
+          name: GalaxyBattery-RC7-APK
           path: |
-            ColourOS-Battery-RC6.apk
+            ColourOS-Battery-RC7.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc6-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC6.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC6 | Made by Muneeb" --notes-file docs/RELEASE-RC6.md --prerelease
+          TAG=rc7-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC7.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC7 | Made by Muneeb" --notes-file docs/RELEASE-RC7.md --prerelease

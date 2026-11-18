@@ -37,11 +37,11 @@ class GlassRail extends View {
     private float widthAt(float v){int i=Math.min(tiles.length-2,Math.max(0,(int)Math.floor(v)));return GlassMath.between(tiles[i].getWidth(),tiles[i+1].getWidth(),v-i);}
     private void colors(float h){
         int variant=style.getAsInt();if(cachedStyle==variant&&cachedHeight==h)return;cachedStyle=variant;cachedHeight=h;
-        int[] palette=variant==0?new int[]{0xff477454,0xff223d30,0xff324c3b}:variant==2?new int[]{0xff85bf94,0xff316648,0xff163d2c,0xff245b38,0xff61a673}:new int[]{0xff649a75,0xff335e46,0xff1c4231,0xff407c53};
+        int[] palette=ColorOsPalette.body(variant);
         body=new LinearGradient(0,0,0,Math.max(1,h),palette,null,Shader.TileMode.CLAMP);
-        edge=new LinearGradient(0,0,0,Math.max(1,h),new int[]{0xffe2ffea,0xff6b9b7a,0xff30513d,0xffa4edb8},new float[]{0,.28f,.68f,1},Shader.TileMode.CLAMP);
-        shine=new LinearGradient(0,0,0,Math.max(1,h),new int[]{0x9ceefff1,0x30d5ffe3,0x00ffffff,0x006aff92,0x547dffae},new float[]{0,.13f,.43f,.74f,1},Shader.TileMode.CLAMP);
-        glint=new RadialGradient(0,0,1,new int[]{0x9bdefff0,0x4c9cf9c6,0x00baffdb},new float[]{0,.42f,1},Shader.TileMode.CLAMP);
+        edge=new LinearGradient(0,0,0,Math.max(1,h),ColorOsPalette.edge(variant),new float[]{0,.28f,.68f,1},Shader.TileMode.CLAMP);
+        shine=new LinearGradient(0,0,0,Math.max(1,h),new int[]{0x32ffffff,0x0cffffff,0x00ffffff,0x00ffffff,0x20ffffff},new float[]{0,.13f,.43f,.74f,1},Shader.TileMode.CLAMP);
+        glint=new RadialGradient(0,0,1,new int[]{0x45ffffff,0x18ffffff,0x00ffffff},new float[]{0,.42f,1},Shader.TileMode.CLAMP);
     }
     @Override protected void onDraw(Canvas canvas){
         if(tiles.length<2||tiles[0]==null||tiles[0].getWidth()<=0)return;
@@ -66,6 +66,8 @@ class GlassRail extends View {
             paint.setShader(shine);canvas.drawPath(liquid,paint);
             matrix.reset();matrix.setScale(Math.max(dp(24),span*.67f),Math.max(dp(16),h*.58f));matrix.postTranslate(xAt(head)+widthAt(head)*.48f,top+dp(4));glint.setLocalMatrix(matrix);paint.setShader(glint);canvas.drawPath(liquid,paint);
         }
-        paint.setShader(edge);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(style.getAsInt()==2?1.65f:1.2f));paint.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(liquid,paint);paint.setStyle(Paint.Style.FILL);paint.setShader(null);
+        paint.setShader(edge);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(style.getAsInt()==2?1.25f:.9f));paint.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(liquid,paint);paint.setStyle(Paint.Style.FILL);paint.setShader(null);
+        // Restrained ColorOS accent: only the short bottom highlight, not the entire glass body.
+        if(!compact){float cx=xAt(slot)+widthAt(slot)*.5f;float half=Math.min(dp(9),widthAt(slot)*.12f);paint.setColor(ColorOsPalette.ACCENT);canvas.drawRoundRect(cx-half,bottom-dp(4),cx+half,bottom-dp(2),dp(1),dp(1),paint);}
     }
 }

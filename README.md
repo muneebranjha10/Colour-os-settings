@@ -21,7 +21,7 @@ ColourOS Battery replaces the appearance of the supported native Battery activit
 
 | Dashboard | Custom studio |
 | --- | --- |
-| Live battery percentage and charging estimates | Three filled liquid-glass strengths |
+| Live battery percentage and charging estimates | Three neutral liquid-glass strengths |
 | Battery-side charging power and recent graph | Adjustable animation speed |
 | ASOC, BSOH and cycle count with source labels | Draggable, filled morphing power and charging selectors |
 | Inline battery protection on supported firmware | Optional haptics and wattage display |
@@ -35,11 +35,15 @@ Battery-side wattage is not wall or charger output. Health values are firmware e
 RC5 introduced a continuously tracking charge limit thumb with press expansion, four-step snapping on release, animated Basic/Maximum and usage tabs, and a spring-based crystal glass renderer with moving specular highlights. These are iOS-inspired optical approximations, not Apple's compositor or a copy of its proprietary effects. Native battery limits remain 80/85/90/95%. Dashboard polling yields during drag.
 
 
-Battery Health opens and closes with directional page motion and background dashboard parallax. The back button and system back trigger the animated return. Module dialogs have soft entrance motion, rows have touch ripples, and the battery dashboard has an animated entrance and toolbar-back exit. Low Power UI reduces transitions to a short fade; system-disabled animators skip these effects. Native Samsung pages retain their own transitions.
+Battery Health now opens and closes with a brief same-window crossfade, without dashboard scaling or parallax. The back button and system back trigger the animated return. Module dialogs have soft entrance motion, rows have touch ripples, and the battery dashboard has an animated entrance and toolbar-back exit. Low Power UI reduces transitions to a short fade; system-disabled animators skip these effects. Native Samsung pages retain their own transitions.
 
 ### RC6 touch rendering fix
 
 Removed the stationary rectangular Android press ripple from the power, charging, protection and usage glass selectors. Their moving glass remains the only touch selection effect. Other custom rows use a rounded ripple mask. Keyboard focus remains visible. The fix does not change native power mode activation logic.
+
+### RC7 ColorOS refinement
+
+Neutral charcoal and silver glass, restrained green selection accents, a white/silver charge-limit thumb, and an in-window Battery Health crossfade. The dashboard stays stationary when returning; polling pauses while health is open. Toolbar/system back share the close path (legacy fallback is scoped to BatteryActivity). Native Samsung pages retain their own transitions.
 
 ## Compatibility
 
@@ -52,7 +56,7 @@ Removed the stationary rectangular Android press ripple from the power, charging
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC6 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC7 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -78,7 +82,7 @@ The previously reported Balanced-mode issue has not been investigated further an
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs twenty automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs twenty-three automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 

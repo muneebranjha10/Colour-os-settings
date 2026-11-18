@@ -30,7 +30,7 @@ final class MotionUi {
         v.setDefaultFocusHighlightEnabled(false);
         StateListDrawable focus=new StateListDrawable();
         GradientDrawable ring=rounded(v,radiusDp,Color.TRANSPARENT);
-        ring.setStroke(Math.max(1,Math.round(v.getResources().getDisplayMetrics().density)),0xA6C8FAD6);
+        ring.setStroke(Math.max(1,Math.round(v.getResources().getDisplayMetrics().density)),0xA6D8D8D8);
         focus.addState(new int[]{android.R.attr.state_enabled,android.R.attr.state_focused,-android.R.attr.state_pressed},ring);
         focus.addState(new int[]{},new ColorDrawable(Color.TRANSPARENT));
         v.setForeground(focus);

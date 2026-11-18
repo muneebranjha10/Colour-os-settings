@@ -26,6 +26,15 @@ public final class BatteryHook implements IXposedHookLoadPackage {
             });
             log("onResume hook installed");
         }catch(Throwable t){log("hook failed: "+t);}
+        // Legacy back fallback, only while our health page is open in BatteryActivity.
+        XC_MethodHook back=new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam param){
+            if(!(param.thisObject instanceof Activity)||!ACT.equals(param.thisObject.getClass().getName()))return;
+            Activity a=(Activity)param.thisObject;ViewGroup host=a.findViewById(android.R.id.content);if(host==null)return;View v=host.findViewWithTag(TAG);
+            if(v instanceof Dashboard&&((Dashboard)v).handleHealthBack())param.setResult(null);
+        }};
+        try{XposedHelpers.findAndHookMethod(ACT,p.classLoader,"onBackPressed",back);}catch(Throwable t){
+            try{XposedHelpers.findAndHookMethod("android.app.Activity",p.classLoader,"onBackPressed",back);}catch(Throwable ignored){log("legacy health back fallback unavailable");}
+        }
     }
     private final java.util.Set<Activity> stock=java.util.Collections.newSetFromMap(new java.util.WeakHashMap<Activity,Boolean>());
     private void attach(Activity a){

@@ -18,7 +18,7 @@ final class GlassLimit extends SeekBar {
     GlassLimit(Activity a,IntSupplier style,BooleanSupplier quiet,IntUnaryOperator duration){
         super(a);this.style=style;this.quiet=quiet;this.duration=duration;
         setMax(GlassMath.MAX_PROGRESS);setKeyProgressIncrement(100);setSplitTrack(false);
-        setPadding(dp(15),0,dp(15),0);setProgressDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+        setPadding(dp(20),0,dp(20),0);setProgressDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
         invisibleThumb=new GradientDrawable();invisibleThumb.setColor(Color.TRANSPARENT);invisibleThumb.setSize(dp(24),dp(24));setThumb(invisibleThumb);setThumbOffset(dp(12));setBackground(null);setContentDescription("Maximum battery charge limit");
     }
     private int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
@@ -41,10 +41,10 @@ final class GlassLimit extends SeekBar {
         pressAnim=ValueAnimator.ofFloat(press,amount);pressAnim.setDuration(duration.applyAsInt(160));pressAnim.setInterpolator(new PathInterpolator(.2f,.8f,.2f,1));pressAnim.addUpdateListener(v->{press=(float)v.getAnimatedValue();postInvalidateOnAnimation();});pressAnim.start();
     }
     private void shaders(){int v=style.getAsInt();if(shaderStyle==v)return;shaderStyle=v;
-        track=new LinearGradient(0,-1,0,1,0xff414944,0xff26332c,Shader.TileMode.CLAMP);
-        fill=new LinearGradient(0,-1,0,1,0xffa4f7b2,0xff268b4c,Shader.TileMode.CLAMP);
-        lens=new LinearGradient(0,-1,0,1,new int[]{0xffeaffee,0xff8adca6,0xff36774d,0xff86daa1},new float[]{0,.28f,.70f,1},Shader.TileMode.CLAMP);
-        edge=new LinearGradient(0,-1,0,1,0xfff0fff3,0xff4b9962,Shader.TileMode.CLAMP);
+        track=new LinearGradient(0,-1,0,1,0xff424242,0xff292929,Shader.TileMode.CLAMP);
+        fill=new LinearGradient(0,-1,0,1,0xff54de63,0xff31ba43,Shader.TileMode.CLAMP);
+        lens=new LinearGradient(0,-1,0,1,ColorOsPalette.thumb(v),new float[]{0,.28f,.70f,1},Shader.TileMode.CLAMP);
+        edge=new LinearGradient(0,-1,0,1,0xfff5f5f5,0xff777b78,Shader.TileMode.CLAMP);
         specular=new RadialGradient(-.15f,-.55f,1,new int[]{0xbfffffff,0x00ffffff},null,Shader.TileMode.CLAMP);
     }
     private void map(Shader shader,float sx,float sy,float x,float y){matrix.reset();matrix.setScale(sx,sy);matrix.postTranslate(x,y);shader.setLocalMatrix(matrix);p.setShader(shader);}
@@ -53,9 +53,9 @@ final class GlassLimit extends SeekBar {
         boolean rtl=getLayoutDirection()==LAYOUT_DIRECTION_RTL;float x=left+(right-left)*GlassMath.thumbFraction(visual,rtl);shaders();float half=dp(3);
         p.setStyle(Paint.Style.FILL);p.setShader(null);p.setAlpha(255);map(track,1,half,0,cy);rect.set(left,cy-half,right,cy+half);c.drawRoundRect(rect,half,half,p);
         float start=rtl?right:left;rect.set(Math.min(x,start),cy-half,Math.max(x,start),cy+half);map(fill,1,half,0,cy);c.drawRoundRect(rect,half,half,p);
-        p.setShader(null);p.setColor(0xffabb3ad);for(int i=0;i<4;i++){float dot=left+(right-left)*GlassMath.thumbFraction(i*100,rtl);c.drawCircle(dot,cy,dp(2),p);}
-        float rx=dp(10)+dp(8)*press,ry=dp(10)+dp(3)*press;
-        if(!quiet.getAsBoolean()){p.setColor(0x3a85f5a0);c.drawRoundRect(x-rx-dp(3),cy-ry-dp(3),x+rx+dp(3),cy+ry+dp(3),ry+dp(3),ry+dp(3),p);}
+        p.setShader(null);p.setColor(0xffaaaaaa);for(int i=0;i<4;i++){float dot=left+(right-left)*GlassMath.thumbFraction(i*100,rtl);c.drawCircle(dot,cy,dp(2),p);}
+        float rx=dp(10)+dp(5)*press,ry=dp(10)+dp(2)*press;
+        if(!quiet.getAsBoolean()){p.setColor(0x18ffffff);c.drawRoundRect(x-rx-dp(3),cy-ry-dp(3),x+rx+dp(3),cy+ry+dp(3),ry+dp(3),ry+dp(3),p);}
         rect.set(x-rx,cy-ry,x+rx,cy+ry);p.setColor(Color.WHITE);map(lens,rx,ry,x,cy);c.drawRoundRect(rect,ry,ry,p);
         if(!quiet.getAsBoolean()){map(specular,rx,ry,x,cy);c.drawRoundRect(rect,ry,ry,p);}
         p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(1));map(edge,rx,ry,x,cy);c.drawRoundRect(rect,ry,ry,p);p.setStyle(Paint.Style.FILL);p.setShader(null);

@@ -57,7 +57,7 @@ final class Dashboard extends LinearLayout {
     private PowerGraph powerGraph;
     private ChargeTelemetry.Reading lastReading;
     private ChargeTelemetry telemetry;
-    private final Runnable powerTick=new Runnable(){public void run(){if(!leaving&&isAttachedToWindow()&&isShown()&&hasWindowFocus()&&pluggedIn){updateChargingHeader();handler.postDelayed(this,quietMode?5000:2000);}}};
+    private final Runnable powerTick=new Runnable(){public void run(){if(!leaving&&healthScreen==null&&isAttachedToWindow()&&isShown()&&hasWindowFocus()&&pluggedIn){updateChargingHeader();handler.postDelayed(this,quietMode?5000:2000);}}};
     private String[] estimates={"Learning…","Learning…","Learning…"};
     private boolean pluggedIn;
     private int currentPercent=-1;
@@ -78,7 +78,7 @@ final class Dashboard extends LinearLayout {
     private int selected=-2;
     private boolean syncingSwitch, busy, ready;
     private long queryGeneration;
-    private final Runnable tick=new Runnable(){public void run(){if(!leaving&&isAttachedToWindow()&&isShown()&&hasWindowFocus()){refresh();handler.postDelayed(this,quietMode?30000:15000);}}};
+    private final Runnable tick=new Runnable(){public void run(){if(!leaving&&healthScreen==null&&isAttachedToWindow()&&isShown()&&hasWindowFocus()){refresh();handler.postDelayed(this,quietMode?30000:15000);}}};
     private final ContentObserver modeObserver=new ContentObserver(handler){@Override public void onChange(boolean self){if(!leaving&&hasWindowFocus()&&isShown())refresh();}};
     private boolean observing;
     private final Runnable original;
@@ -165,7 +165,7 @@ final class Dashboard extends LinearLayout {
         nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");if(apps.getChildCount()>0)add(body,apps,-2);
         space(body,18);LinearLayout stockCard=card();item(stockCard,"Original Samsung Battery","All native battery features",original);add(body,stockCard,-2);
         space(body,27);TextView credit=text("Made by Muneeb",14,0xffb6b6b6,false);credit.setGravity(Gravity.CENTER);credit.setIncludeFontPadding(true);add(body,credit,-2);
-        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC6",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
+        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC7",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
         ready=true;refresh();
         MotionUi.enter(header,duration(240),quietMode,0,dp(8));MotionUi.enter(scroll,duration(340),quietMode,0,dp(20));
     }
@@ -183,20 +183,24 @@ final class Dashboard extends LinearLayout {
         showPanel(new AlertDialog.Builder(a).setTitle("Battery insights").setMessage("Battery: "+(currentPercent<0?"Unavailable":currentPercent+"%")+"\nMode: "+mode+"\nEstimated time: "+estimate+"\n\n"+advice+"\n\nLocal readings and rule-based tips, not AI-generated analysis.").setNegativeButton("Close",null).setPositiveButton("Samsung usage statistics",(d,w)->original.run()));
     }
     private void openUsage(int ix){if(usageOpening||leaving)return;usageOpening=true;usageRange=ix;usageRail.settle(ix);postDelayed(()->{usageOpening=false;if(isAttachedToWindow()&&hasWindowFocus()&&!leaving)openNative(ix==0?"com.samsung.android.sm.battery.ui.graph.LastChargeGraphActivity":"com.samsung.android.sm.battery.ui.graph.DailyUsageGraphActivity");},MotionUi.enabled()&&!quietMode?Math.min(175,duration(140)):0);}
-    private boolean manipulating(){return modeDragging||chargingDragging||(protectionCard!=null&&protectionCard.interacting());}
+    private boolean manipulating(){return healthScreen!=null||modeDragging||chargingDragging||(protectionCard!=null&&protectionCard.interacting());}
     private void openNative(String cls){try{Intent i=new Intent().setClassName(a.getPackageName(),cls);a.startActivity(i);}catch(Throwable t){BatteryHook.log("native screen unavailable: "+cls+": "+t);original.run();Toast.makeText(a,"Use the original Samsung settings.",Toast.LENGTH_SHORT).show();}}
     private void dialog(String title,String msg){showPanel(new AlertDialog.Builder(a).setTitle(title).setMessage(msg).setPositiveButton(android.R.string.ok,null));}
     private void health(){
-        if(healthScreen!=null||leaving)return;
-        healthScreen=new HealthScreen(a,()->openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity"),duration(340),quietMode,()->{
-            if(isAttachedToWindow()){MotionUi.restore(dashboardHeader);MotionUi.restore(dashboardScroll);ensureBars();}healthScreen=null;
-        },exiting->{
-            if(!isAttachedToWindow())return;
-            MotionUi.parallax(dashboardHeader,duration(exiting?240:340),quietMode,exiting);
-            MotionUi.parallax(dashboardScroll,duration(exiting?240:340),quietMode,exiting);
+        if(healthScreen!=null||leaving||!(getParent() instanceof FrameLayout))return;
+        FrameLayout host=(FrameLayout)getParent();
+        MotionUi.restore(dashboardHeader);MotionUi.restore(dashboardScroll);
+        handler.removeCallbacks(tick);handler.removeCallbacks(powerTick);
+        setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        healthScreen=new HealthScreen(a,host,()->openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity"),duration(230),quietMode,()->{
+            healthScreen=null;setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+            if(isAttachedToWindow()&&hasWindowFocus()&&!a.isFinishing()&&!a.isDestroyed()){
+                ensureBars();handler.removeCallbacks(tick);handler.post(tick);handler.removeCallbacks(powerTick);if(pluggedIn)handler.post(powerTick);
+            }
         });
-        try{healthScreen.show();}catch(Throwable t){healthScreen=null;MotionUi.restore(dashboardHeader);MotionUi.restore(dashboardScroll);throw t;}
+        try{healthScreen.show();}catch(Throwable t){if(healthScreen!=null)healthScreen.closeNow();healthScreen=null;setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);BatteryHook.log("Health page unavailable: "+t);Toast.makeText(a,"Battery health page unavailable",Toast.LENGTH_SHORT).show();}
     }
+    boolean handleHealthBack(){if(healthScreen==null)return false;healthScreen.back();return true;}
     private void leaveDashboard(){
         if(leaving)return;leaving=true;handler.removeCallbacks(tick);handler.removeCallbacks(powerTick);
         MotionUi.exit(dashboardHeader,duration(200),quietMode,dp(12),0,null);
@@ -256,10 +260,10 @@ final class Dashboard extends LinearLayout {
     private int duration(int ms){return quietMode?Math.max(1,ms/2):animationStyle==0?Math.max(1,ms/2):animationStyle==2?Math.round(ms*1.45f):ms;}
     private String reminderLabel(){return chargeReminder==0?"Disabled":"Alert at "+chargeReminder+"% · page only";}
     private void chooseChargeReminder(){int[] values={0,70,80,85,90,95,100};String[] names={"Disabled","70%","80%","85%","90%","95%","100%"};int ix=0;for(int k=0;k<values.length;k++)if(values[k]==chargeReminder)ix=k;showPanel(new AlertDialog.Builder(a).setTitle("Charge target reminder").setSingleChoiceItems(names,ix,(d,w)->{chargeReminder=values[w];reminderFired=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("charge_reminder",chargeReminder).apply();reminderNote.setText(reminderLabel());d.dismiss();refresh();}).setNegativeButton("Cancel",null));}
-    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC6\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"Crystal glass renderer (hardware Canvas)":"Crystal glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
+    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC7\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
     private void customize(){
         LinearLayout p=col();p.setPadding(dp(20),dp(8),dp(20),dp(8));add(p,text("Liquid glass strength",15,WHITE,false),-2);
-        android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Subtle","Optical glass","Deep glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
+        android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Subtle charcoal","ColorOS glass","Deep silver glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
         add(p,text("Animation speed",15,WHITE,false),-2);android.widget.RadioGroup speeds=new android.widget.RadioGroup(a);String[] speedNames={"Fast","Smooth","Slow"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(200+k);b.setText(speedNames[k]);speeds.addView(b);if(k==animationStyle)speeds.check(b.getId());}add(p,speeds,-2);
         Switch show=new Switch(a);show.setText("Show live battery monitor");show.setChecked(showMonitor);add(p,show,-2);
         Switch watts=new Switch(a);watts.setText("Show charging wattage");watts.setChecked(showWatts);add(p,watts,-2);
@@ -276,7 +280,7 @@ final class Dashboard extends LinearLayout {
     }
     private void refreshChargingPolicy(){
         if(chargingTiles[0]==null)return;int state=chargingPolicy.read();
-        for(int i=0;i<2;i++){boolean active=state==i;chargingTiles[i].setSelected(active);chargingTitles[i].setTextColor(WHITE);}if(chargingLens!=null&&!chargingDragging)chargingLens.settle(state);
+        for(int i=0;i<2;i++){boolean active=state==i;chargingTiles[i].setSelected(active);chargingTitles[i].setTextColor(active?ColorOsPalette.ACCENT:WHITE);}if(chargingLens!=null&&!chargingDragging)chargingLens.settle(state);
         if(chargePolicyNote!=null)chargePolicyNote.setText(state<0||!chargingPolicy.canApply()?"Open native settings to configure charging":state==0?"Fast charging disabled":"Fast / Super fast enabled · charger, battery and temperature determine actual speed");
     }
     private void selectChargingPolicy(int mode){
@@ -291,7 +295,7 @@ final class Dashboard extends LinearLayout {
     }
     // Only the hooked BatteryActivity window; no global status bar settings.
     void ensureBars(){if(isAttachedToWindow()&&hasWindowFocus())WindowBars.schedule(a.getWindow(),this);}
-    @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus&&!leaving){ensureBars();handler.removeCallbacks(tick);handler.post(tick);handler.removeCallbacks(powerTick);if(pluggedIn)handler.post(powerTick);}else{handler.removeCallbacks(powerTick);handler.removeCallbacks(tick);}}
+    @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus&&!leaving&&healthScreen==null){ensureBars();handler.removeCallbacks(tick);handler.post(tick);handler.removeCallbacks(powerTick);if(pluggedIn)handler.post(powerTick);}else{handler.removeCallbacks(powerTick);handler.removeCallbacks(tick);}}
     private void applySafeInsets(WindowInsets insets){WindowBars.pad(a.getWindow(),this,insets);}
     private void showMode(int which){
         int old=selected;selected=which;
@@ -300,7 +304,7 @@ final class Dashboard extends LinearLayout {
         syncingSwitch=true;superSwitch.setChecked(saving);syncingSwitch=false;
         for(int j=0;j<3;j++){
             boolean chosen=j==which;modes[j].setSelected(chosen);
-            if(old!=which){modeLabels[j].setTextColor(WHITE);modeIcons[j].color=WHITE;modeIcons[j].invalidate();modeNotes[j].setTextColor(chosen?0xffc3fbd2:MUTED);}
+            if(old!=which){modeLabels[j].setTextColor(chosen?ColorOsPalette.ACCENT:WHITE);modeIcons[j].color=chosen?ColorOsPalette.ACCENT:WHITE;modeIcons[j].invalidate();modeNotes[j].setTextColor(MUTED);}
         }
     }
     private void choose(int mode){
