@@ -51,7 +51,7 @@ final class ProtectionCard extends LinearLayout {
     private int get(String key){try{return Settings.Global.getInt(a.getContentResolver(),key,-1);}catch(Throwable t){return -1;}}
     private int readMode(){return get(MODE);}
     private boolean validLimit(int n){return n>=80&&n<=95&&n%5==0;}
-    private boolean supported(int mode,int limit){return (mode==0||mode==1||mode==3)&&validLimit(limit);}
+    private boolean supported(int mode,int limit){return ReleaseRules.supportsProtection(android.os.Build.VERSION.SDK_INT,mode,limit);}
     private boolean put(String key,int value){try{return Settings.Global.putInt(a.getContentResolver(),key,value)&&get(key)==value;}catch(Throwable t){BatteryHook.log("Protection setting unavailable: "+key+" "+t.getClass().getSimpleName());return false;}}
     private void setMode(int mode){int old=readMode(),limit=get(LIMIT);if(!supported(old,limit)){nativePage.run();return;}if(mode!=0&&mode!=1&&mode!=3)return;if(mode==old){refresh();return;}if(!put(MODE,mode))fail();else{if(mode>0)remembered=mode;refresh();}}
     private void setLimit(int limit){if(readMode()!=1||!validLimit(limit)||!validLimit(get(LIMIT))){refresh();return;}if(!put(LIMIT,limit))fail();else refresh();}

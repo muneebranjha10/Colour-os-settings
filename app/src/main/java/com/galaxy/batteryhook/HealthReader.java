@@ -45,9 +45,10 @@ final class HealthReader {
             if(i!=null){r.temp=i.getIntExtra(BatteryManager.EXTRA_TEMPERATURE,-1);r.mv=i.getIntExtra(BatteryManager.EXTRA_VOLTAGE,-1);r.status=i.getIntExtra(BatteryManager.EXTRA_HEALTH,0);r.cycles=range(i.getIntExtra("android.os.extra.CYCLE_COUNT",-1),1,50000);if(r.cycles>0)r.cycleSource="Android cycle count";}
         }catch(Throwable ignored){}
         r.asoc=health(readInt("/sys/class/power_supply/battery/fg_asoc"));if(r.asoc>=0)r.asocSource="Live fg_asoc";
+        else{r.asoc=health(readInt("/sys/class/power_supply/fuelgauge/fg_asoc"));if(r.asoc>=0)r.asocSource="Live fuelgauge fg_asoc";}
         int vendor=range(readInt("/sys/class/power_supply/battery/battery_cycle"),1,50000);
         if(vendor>0){r.cycles=vendor;r.cycleSource="Live Samsung battery_cycle";}
-        else if(r.cycles<0){int kernel=range(readInt("/sys/class/power_supply/battery/cycle_count"),1,50000);if(kernel>0){r.cycles=kernel;r.cycleSource="Live kernel cycle_count";}}
+        else if(r.cycles<0){String[] paths={"/sys/class/power_supply/battery/cycle_count","/sys/class/power_supply/fuelgauge/cycle_count","/sys/class/power_supply/bms/cycle_count"};for(String path:paths){int kernel=range(readInt(path),1,50000);if(kernel>0){r.cycles=kernel;r.cycleSource="Live kernel cycle_count";break;}}}
         r.design=range(readInt("/sys/class/power_supply/battery/charge_full_design"),1000000,20000000);
         r.full=range(readInt("/sys/class/power_supply/battery/charge_full"),1000000,20000000);
         try{BatteryManager b=(BatteryManager)c.getSystemService(Context.BATTERY_SERVICE);if(b!=null){long val=b.getLongProperty(10);if(val>=1&&val<=100)r.api=(int)val;}}catch(Throwable ignored){}
@@ -67,5 +68,5 @@ final class HealthReader {
         resolveCycles(r);
         return r;
     }
-    static void resolveCycles(Reading r){if(r.cycles<=0&&r.savedUsage>=0){r.cycles=r.savedUsage/100;r.cycleSource="Samsung saved usage ÷ 100 (estimate)";}}
+    static void resolveCycles(Reading r){if(r.cycles<=0&&r.savedUsage>=0){r.cycles=ReleaseRules.cyclesFromUsage(r.savedUsage);r.cycleSource="Samsung saved usage ÷ 100 (estimate)";}}
 }

@@ -14,7 +14,7 @@ final class ChargeTelemetry {
     private long sampleTime, anchorTime, startTime;
     private int anchorCounter=-1,startPercent=-1, polarity=1, plugVotes=0;
     private int socAnchor=-1; private long socTime,socSampleTime; private double socCurrent=Double.NaN;
-    private boolean sysfsDenied;
+    private boolean sysfsDenied;private long sysfsReadAt;private int sysfsCache=Integer.MIN_VALUE;
     private double counterCurrent=Double.NaN;
     private long counterTime;
     private String smoothSource="";
@@ -52,10 +52,10 @@ final class ChargeTelemetry {
         }
     }
     private int readSysfs(){
-        if(sysfsDenied)return Integer.MIN_VALUE;
+        if(sysfsDenied)return Integer.MIN_VALUE;long now=SystemClock.elapsedRealtime();if(sysfsReadAt>0&&now-sysfsReadAt<4000)return sysfsCache;sysfsReadAt=now;sysfsCache=Integer.MIN_VALUE;
         boolean accessible=false;
         String[] paths={"/sys/class/power_supply/battery/current_now","/sys/class/power_supply/bms/current_now","/sys/class/power_supply/fuelgauge/current_now"};
-        for(String path:paths){try(java.io.BufferedReader in=new java.io.BufferedReader(new java.io.FileReader(path))){accessible=true;String line=in.readLine();if(line!=null){int v=Integer.parseInt(line.trim());if(useful(v))return v;}}catch(Throwable e){}}
+        for(String path:paths){try(java.io.BufferedReader in=new java.io.BufferedReader(new java.io.FileReader(path))){accessible=true;String line=in.readLine();if(line!=null){int v=Integer.parseInt(line.trim());if(useful(v)){sysfsCache=v;return v;}}}catch(Throwable e){}}
         if(!accessible)sysfsDenied=true;return Integer.MIN_VALUE;
     }
     private void socSample(Reading r,long now){
@@ -73,7 +73,7 @@ final class ChargeTelemetry {
             int plug=b.getIntExtra(BatteryManager.EXTRA_PLUGGED,0),status=b.getIntExtra(BatteryManager.EXTRA_STATUS,0);
             r.plugged=plug!=0;r.charging=status==BatteryManager.BATTERY_STATUS_CHARGING;r.full=status==BatteryManager.BATTERY_STATUS_FULL;r.wireless=plug==BatteryManager.BATTERY_PLUGGED_WIRELESS;
             r.mv=b.getIntExtra(BatteryManager.EXTRA_VOLTAGE,-1);r.temp=b.getIntExtra(BatteryManager.EXTRA_TEMPERATURE,Integer.MIN_VALUE);
-            r.cycles=b.getIntExtra("android.os.extra.CYCLE_COUNT",-1);
+            r.cycles=b.getIntExtra("android.os.extra.CYCLE_COUNT",-1);if(r.cycles<=0)r.cycles=-1;
             int l=b.getIntExtra(BatteryManager.EXTRA_LEVEL,-1),scale=b.getIntExtra(BatteryManager.EXTRA_SCALE,-1);if(l>=0&&scale>0&&l<=scale)r.percent=Math.round(100f*l/scale);
             r.ua=property(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);r.average=property(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE);
             r.counter=property(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);if(r.counter<=0)r.counter=b.getIntExtra("charge_counter",-1);
@@ -87,7 +87,9 @@ final class ChargeTelemetry {
             r.sysfsCurrent=readSysfs();
             double current=Double.NaN;
             double direct=useful(r.ua)?r.ua*(double)polarity:Double.NaN;
-            if(counterFresh&&counterCurrent>50000&&(!Double.isFinite(direct)||direct<=0||direct<counterCurrent*.10)){
+            if(counterFresh&&counterCurrent<-50000){r.discharging=true;r.source="Battery currently discharging";}
+            else if(!r.charging&&!r.full){r.source="Charging paused";}
+            else if(counterFresh&&counterCurrent>50000&&(!Double.isFinite(direct)||direct<=0||direct<counterCurrent*.10)){
                 current=counterCurrent;r.source="Charge-counter rate";r.estimated=true;
             }else if(Double.isFinite(direct)&&direct>0){current=direct;r.source="Instant current";}
             else if(useful(r.average)&&r.average*(double)polarity>0&&(!counterFresh||counterCurrent<=0||r.average*(double)polarity>=counterCurrent*.10)){current=r.average*(double)polarity;r.source="Average current";r.estimated=true;}
@@ -103,7 +105,7 @@ final class ChargeTelemetry {
             else{r.source="Charging paused";}
             r.effectiveUa=current;
             if(!Double.isNaN(current)&&r.mv>=2500&&r.mv<=5000){
-                double power=current*r.mv/1000000000d;
+                double power=ReleaseRules.watts(current,r.mv);
                 if(Double.isNaN(smooth)||now-sampleTime>6000||!smoothSource.equals(r.source))smooth=power;
                 else if(now-sampleTime>=700)smooth=.45*smooth+.55*power;
                 if(now-sampleTime>=700){

@@ -12,10 +12,11 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public final class BatteryHook implements IXposedHookLoadPackage {
     private static final String PKG="com.samsung.android.lool";
     private static final String ACT="com.samsung.android.sm.battery.ui.BatteryActivity";
-    private static final String TAG="GalaxyBatteryStage10";
+    private static final String TAG="ColourOSBatteryRC1";
     static void log(String s){ try{XposedBridge.log("["+TAG+"] "+s);}catch(Throwable ignored){} }
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p){
         if(!PKG.equals(p.packageName)||!PKG.equals(p.processName))return;
+        if(!"samsung".equalsIgnoreCase(android.os.Build.MANUFACTURER)||android.os.Build.VERSION.SDK_INT<31){log("Unsupported platform; stock page retained");return;}
         try{
             XposedHelpers.findAndHookMethod(ACT,p.classLoader,"onResume",new XC_MethodHook(){
                 @Override protected void afterHookedMethod(MethodHookParam param){

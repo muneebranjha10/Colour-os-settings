@@ -1,4 +1,4 @@
-name: Build stage 10 APK
+name: Build release candidate
 on:
   workflow_dispatch:
   push:
@@ -23,20 +23,30 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - run: gradle :app:assembleDebug --no-daemon
+      - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Require all ten regression checks
+        run: |
+          python3 - <<'PY'
+          import glob,xml.etree.ElementTree as E
+          files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
+          suites=[E.parse(f).getroot() for f in files]
+          assert sum(int(s.get('tests',0)) for s in suites)>=10
+          assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
+          print('Ten or more regression checks passed')
+          PY
       - name: Verify APK and Xposed entry
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-Stage10.apk
+          cp "$APK" ColourOS-Battery-RC1.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-Stage10-APK
-          path: ColourOS-Battery-Stage10.apk
+          name: GalaxyBattery-RC1-APK
+          path: ColourOS-Battery-RC1.apk
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=stage10-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-Stage10.apk --target "$GITHUB_SHA" --title "Stage 10 integration test" --notes "Current fallback, persistent optical lens and live battery monitor. Scope Device Care only." --prerelease
+          TAG=rc1-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC1.apk --target "$GITHUB_SHA" --title "ColourOS Battery 1.1 RC1" --notes "Public testing candidate. Ten unit checks, signed debug APK, Device Care scope only. One UI 8/9 community testing; unsupported inline controls use stock settings. Not universal device certification." --prerelease

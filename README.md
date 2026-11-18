@@ -1,12 +1,18 @@
-# ColourOS Battery Stage 7
+# ColourOS Battery 1.1 RC1
 
-Native Device Care hook; tested by CI, not on hardware. Rejects near-zero current readings during active charging, uses charge-counter slope and percentage-change estimates, and tries readable Linux fuel gauge paths without requesting root. Values are battery-side estimates, not adapter output. Charge stored is distinct from estimated charge needed. Charging selector uses Samsung's ad.m.e/p helper (Settings.System adaptive_fast_charging), identified in the supplied Device Care APK. Standard and unified Fast/Super fast, change only while unplugged; does not force charger protocol. Balanced is Light and High performance is Standard; measured profile estimates may overlap. Thermal alert is optional, only when page is open. More pronounced optical edge and selected glass tint. No thermal limits or kernel writes.
+Public test candidate for rooted Samsung Galaxy devices using LSPosed, scope only Samsung Device Care (com.samsung.android.lool). Samsung One UI 8 and 9 are the target; One UI 8 functionality has been reported by the project owner's friends, model unspecified. No compatibility certification for every Galaxy, One UI version, ROM, or non-Samsung device. The hook requires the recognized BatteryActivity in the main Device Care process; unknown targets retain stock UI.
 
-## Stage 8
-Dedicated Battery Health screen. Reads ASOC through sysfs or Samsung battery service, separately displays BSOH and Android SOH where available. No hardcoded health values or root grant in host. Manual diagnostic paste fallback is explicitly labeled and memory-only. Existing controls remain; CI is not a hardware test.
+## Features
+- Real ASOC/BSOH/SOH, Samsung battery cycle and usage fallbacks, source labels.
+- Charging power estimates, thermal alert, target reminder (only while Battery page is open), charge graph.
+- Inline native charge protection only for recognized Android 16/17 values; unsupported configuration opens stock settings.
+- Performance and charging helpers restricted to the original test model SM-S911B on API 36/37 with signature and state checks; other models use native settings. Exact compatibility with firmware revisions is not guaranteed.
+- Draggable selectors, glass strength, speed, haptics, show/hide watts, low-power UI and monitor visibility.
+- Window-local status bars, no system-wide hooks, no charging firmware modifications.
+- Compatibility report from Custom features.
 
-## Stage 9
-Inline native battery protection control: Settings.Global protect_battery 0/3/1 (off/basic/maximum), battery_protection_threshold 80/85/90/95. Restricted to recognized values; unsupported settings or sleep mode go to original Samsung page. Writes only after user input, read back, do not override hardware safety or charging service. Actual stop/resume needs phone verification. Drag the three-mode optical selector horizontally; vertical gestures still scroll; only commit once on release, settle to confirmed mode. Existing health and other features retained.
+## Install / recovery
+Install signed test APK, enable module and scope Device Care only, reboot, open Settings > Battery. A CI debug key may differ from earlier builds; uninstall the old module if required. To recover, disable module and reboot, or use the original Samsung Battery page in the overflow. Settings changed by the user remain Samsung settings and are not reset by uninstalling. No automatic root request. No network permissions or persistent background service.
 
-## Stage 10
-Samsung battery_cycle prioritized, bracketed mSavedBatteryUsage fallback divided by 100, source labels, no placeholder 0. Window-local status bar restoration on dashboard and health screen, with bounded retries after focus. Both power and charging selectors support horizontal drag, commit on release, and charging policy continues to require unplugged state. Custom glass strength, animation speed, monitor visibility; grouped settings rows. Device tests required; no global icon settings, kernel writes or hardcoded battery data.
+## Test status
+Ten automated JVM regression checks cover parsing, numeric safeguards, compatibility gating and preference bounds. CI also verifies APK signing and the Xposed entry. These are not device tests, heat benchmarks, or optical-renderer tests. Report exact model, One UI version, and LSPosed logs with private data removed. Keep older release available for rollback.

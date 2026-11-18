@@ -34,12 +34,13 @@ final class NativeModes {
         this.a=a;pm=(PowerManager)a.getSystemService(Context.POWER_SERVICE);bm=(BatteryManager)a.getSystemService(Context.BATTERY_SERVICE);
         history=a.getSharedPreferences("colour_os_battery_profile_samples_v3",Context.MODE_PRIVATE);
         boolean supported=false;
-        try{Class<?> c=Class.forName("tg.a",false,a.getClassLoader());supported=Boolean.TRUE.equals(callStatic(c,"b",new Class<?>[]{}));}catch(Throwable e){BatteryHook.log("Light feature: "+e);}
+        try{if(ReleaseRules.testedHelperFamily(android.os.Build.MODEL,android.os.Build.VERSION.SDK_INT)&&profile()>=0){Class<?> c=Class.forName("tg.a",false,a.getClassLoader());Method check=c.getDeclaredMethod("b");Method set=c.getDeclaredMethod("c",int.class);c.getDeclaredConstructor(Context.class);if(check.getReturnType()==boolean.class&&java.lang.reflect.Modifier.isStatic(check.getModifiers())&&!java.lang.reflect.Modifier.isStatic(set.getModifiers()))supported=Boolean.TRUE.equals(callStatic(c,"b",new Class<?>[]{}));}}catch(Throwable e){BatteryHook.log("Light feature: "+e);}
         lightSupported=supported;
         BatteryHook.log("Samsung Light profile supported="+lightSupported);
     }
+    boolean supportsLight(){return lightSupported;}
     boolean isSaving(){try{return pm!=null&&pm.isPowerSaveMode();}catch(Throwable e){return false;}}
-    private int profile(){try{return Settings.Global.getInt(a.getContentResolver(),"sem_low_heat_mode",0);}catch(Throwable e){return -1;}}
+    private int profile(){try{return Settings.Global.getInt(a.getContentResolver(),"sem_low_heat_mode",-1);}catch(Throwable e){return -1;}}
     int normalMode(){return !lightSupported?0:profile()==1?0:2;}
     int activeMode(){if(isSaving())return 1;if(!lightSupported)return 0;int p=profile();return p==1?0:p==0?2:-1;}
     private static Object callStatic(Class<?> c,String name,Class<?>[] args,Object... values)throws Exception{Method m=c.getDeclaredMethod(name,args);m.setAccessible(true);return m.invoke(null,values);}
