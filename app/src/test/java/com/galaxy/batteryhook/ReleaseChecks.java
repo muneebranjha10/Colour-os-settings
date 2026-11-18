@@ -18,4 +18,8 @@ public class ReleaseChecks {
     @Test public void neckAndDragAreBounded(){assertEquals(0f,LiquidMotion.neck(0,100,.25f),0);assertTrue(LiquidMotion.neck(3,100,.25f)<=25);assertTrue(LiquidMotion.dragTail(0,1)>0&&LiquidMotion.dragTail(0,1)<1);}
     @Test public void reducedMotionCapsDuration(){assertEquals(120,PageMotion.time(340,true));assertEquals(340,PageMotion.time(340,false));assertEquals(1,PageMotion.time(0,true));}
     @Test public void pageParallaxRestoresOriginalPosition(){assertEquals(0f,PageMotion.parallax(1080,true),0f);assertEquals(-37.8f,PageMotion.parallax(1080,false),.0001f);assertEquals(0f,PageMotion.parallax(0,false),0f);}
+    @Test public void chargeLimitOnlySnapsToFourNativeValues(){assertEquals(80,GlassMath.limitForProgress(-1));assertEquals(80,GlassMath.limitForProgress(49));assertEquals(85,GlassMath.limitForProgress(50));assertEquals(90,GlassMath.limitForProgress(150));assertEquals(95,GlassMath.limitForProgress(1000));}
+    @Test public void chargeLimitProgressRoundTrips(){for(int n=80;n<=95;n+=5)assertEquals(n,GlassMath.limitForProgress(GlassMath.progressForLimit(n)));}
+    @Test public void sliderMirrorsRtl(){assertEquals(0f,GlassMath.thumbFraction(0,false),0);assertEquals(1f,GlassMath.thumbFraction(0,true),0);assertEquals(.5f,GlassMath.thumbFraction(150,true),0);assertEquals(0f,GlassMath.thumbFraction(300,true),0);}
+    @Test public void springHasExactEndpointsAndBoundedLeadingEdge(){assertEquals(0f,GlassMath.railHead(0),0);assertEquals(1f,GlassMath.railHead(1),0);assertEquals(1f,GlassMath.railTail(1),0);for(int i=0;i<=100;i++)assertTrue(GlassMath.railHead(i/100f)<=1.035f);}
 }

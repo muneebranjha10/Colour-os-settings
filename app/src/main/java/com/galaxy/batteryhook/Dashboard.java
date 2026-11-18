@@ -63,7 +63,7 @@ final class Dashboard extends LinearLayout {
     private int currentPercent=-1;
     private LinearLayout tileRow;
     
-    private SelectionLens lens;
+    private SelectionLens lens;private GlassRail usageRail;private int usageRange;private boolean usageOpening;
     private HealthScreen healthScreen;private View dashboardHeader,dashboardScroll;private boolean leaving;
     private ChargingLens chargingLens;private LinearLayout chargingRow,monitorSection;private boolean chargingDragging;
     private int glassStyle=1,animationStyle=1;private boolean showMonitor=true,showWatts=true,quietMode=false,haptics=true;
@@ -133,11 +133,13 @@ final class Dashboard extends LinearLayout {
         LinearLayout superRow=row();LinearLayout superText=col();add(superText,text("Super power saving mode",18,WHITE,false),-2);space(superText,5);superNote=text("Uses Samsung Power saving",13,MUTED,false);add(superText,superNote,-2);superRow.addView(superText,new LayoutParams(0,-2,1));superSwitch=new Switch(uiContext);superSwitch.setShowText(false);superSwitch.setThumbTintList(ColorStateList.valueOf(WHITE));superSwitch.setTrackTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{0xff43af54,0xff555555}));superSwitch.setContentDescription("Super power saving mode (Samsung Power saving)");superRow.addView(superSwitch,new LayoutParams(-2,-2));add(main,superRow,-2);superSwitch.setOnCheckedChangeListener((b,checked)->{if(!syncingSwitch)choose(checked?1:engine.normalMode());});tap(superText,()->{if(!busy)choose(engine.isSaving()?engine.normalMode():1);});space(main,15);line(main);space(main,14);
         item(main,"Adaptive battery","Intelligently extends battery life based on your usage patterns and activity.",()->openNative("com.samsung.android.sm.battery.ui.setting.AdaptiveBatteryMenuActivity"));space(main,22);
         item(main,"Battery health",null,this::health);
-        space(body,18);protectionCard=new ProtectionCard(a,()->openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity"));add(body,protectionCard,-2);
+        space(body,18);protectionCard=new ProtectionCard(a,()->openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity"),()->glassStyle,()->quietMode,this::duration,()->haptics);add(body,protectionCard,-2);
         space(body,18);
         LinearLayout assistant=card();LinearLayout ar=row();Symbol ai=new Symbol(4,WHITE);ar.addView(ai,new LayoutParams(dp(35),dp(38)));LinearLayout at=col();LayoutParams ap=new LayoutParams(0,-2,1);ap.leftMargin=dp(14);ar.addView(at,ap);add(at,text("AI Battery Assistant",18,WHITE,false),-2);space(at,6);TextView info=text("See live battery insights and charging status.",14,MUTED,false);assistantSummary=info;info.setLineSpacing(dp(3),1);add(at,info,-2);ar.addView(chevron(),new LayoutParams(dp(20),dp(32)));add(assistant,ar,-2);tap(ar,this::showInsights);add(body,assistant,-2);
         space(body,26);section(body,"Battery usage");
-        LinearLayout usage=card();LinearLayout tabs=row();tabs.setBackground(shape(TILE,22));tabs.setPadding(dp(4),dp(4),dp(4),dp(4));String[] ranges={"Today","Last 7 days"};for(int i=0;i<2;i++){final int ix=i;TextView t=text(ranges[i],14,WHITE,false);t.setGravity(Gravity.CENTER);if(i==0)t.setBackground(shape(0xff555555,18));tabs.addView(t,new LayoutParams(0,dp(36),1));tap(t,()->openNative(ix==0?"com.samsung.android.sm.battery.ui.graph.LastChargeGraphActivity":"com.samsung.android.sm.battery.ui.graph.DailyUsageGraphActivity"));}add(usage,tabs,-2);space(usage,16);add(usage,text("View real battery usage in Samsung's graphs",14,MUTED,false),-2);space(usage,14);item(usage,"Open original battery statistics",null,original);add(body,usage,-2);
+        LinearLayout usage=card();LinearLayout tabs=row();TextView[] rangeLabels=new TextView[2];String[] ranges={"Today","Last 7 days"};
+        for(int i=0;i<2;i++){final int ix=i;TextView t=text(ranges[i],14,WHITE,false);t.setGravity(Gravity.CENTER);rangeLabels[i]=t;LayoutParams lp=new LayoutParams(0,dp(40),1);if(i>0)lp.leftMargin=dp(5);tabs.addView(t,lp);tap(t,()->openUsage(ix));}
+        FrameLayout tabHost=new FrameLayout(a);usageRail=new GlassRail(a,rangeLabels,()->glassStyle,()->quietMode,this::duration,true);tabHost.addView(usageRail,new FrameLayout.LayoutParams(-1,-1));tabHost.addView(tabs,new FrameLayout.LayoutParams(-1,-1));usageRail.settle(0);add(usage,tabHost,40);space(usage,16);add(usage,text("View real battery usage in Samsung's graphs",14,MUTED,false),-2);space(usage,14);item(usage,"Open original battery statistics",null,original);add(body,usage,-2);
         space(body,22);section(body,"Charging mode");addChargingModes(body);space(body,22);monitorSection=col();section(monitorSection,"Live battery monitor");LinearLayout monitor=card();
         LinearLayout metrics=row();liveTemp=metric(metrics,"Temperature");liveVoltage=metric(metrics,"Voltage");add(monitor,metrics,-2);space(monitor,16);line(monitor);space(monitor,16);
         LinearLayout metrics2=row();liveCurrent=metric(metrics2,"Battery current");liveCharge=metric(metrics2,"Charge stored");add(monitor,metrics2,-2);space(monitor,18);
@@ -161,7 +163,7 @@ final class Dashboard extends LinearLayout {
         nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");if(apps.getChildCount()>0)add(body,apps,-2);
         space(body,18);LinearLayout stockCard=card();item(stockCard,"Original Samsung Battery","All native battery features",original);add(body,stockCard,-2);
         space(body,27);TextView credit=text("Made by Muneeb",14,0xffb6b6b6,false);credit.setGravity(Gravity.CENTER);credit.setIncludeFontPadding(true);add(body,credit,-2);
-        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC4",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
+        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC5",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
         ready=true;refresh();
         MotionUi.enter(header,duration(240),quietMode,0,dp(8));MotionUi.enter(scroll,duration(340),quietMode,0,dp(20));
     }
@@ -178,6 +180,8 @@ final class Dashboard extends LinearLayout {
         String advice=pluggedIn?"Battery protection can reduce time spent at full charge.":"Use Power saving or review background activity to reduce drain.";
         showPanel(new AlertDialog.Builder(a).setTitle("Battery insights").setMessage("Battery: "+(currentPercent<0?"Unavailable":currentPercent+"%")+"\nMode: "+mode+"\nEstimated time: "+estimate+"\n\n"+advice+"\n\nLocal readings and rule-based tips, not AI-generated analysis.").setNegativeButton("Close",null).setPositiveButton("Samsung usage statistics",(d,w)->original.run()));
     }
+    private void openUsage(int ix){if(usageOpening||leaving)return;usageOpening=true;usageRange=ix;usageRail.settle(ix);postDelayed(()->{usageOpening=false;if(isAttachedToWindow()&&hasWindowFocus()&&!leaving)openNative(ix==0?"com.samsung.android.sm.battery.ui.graph.LastChargeGraphActivity":"com.samsung.android.sm.battery.ui.graph.DailyUsageGraphActivity");},MotionUi.enabled()&&!quietMode?Math.min(175,duration(140)):0);}
+    private boolean manipulating(){return modeDragging||chargingDragging||(protectionCard!=null&&protectionCard.interacting());}
     private void openNative(String cls){try{Intent i=new Intent().setClassName(a.getPackageName(),cls);a.startActivity(i);}catch(Throwable t){BatteryHook.log("native screen unavailable: "+cls+": "+t);original.run();Toast.makeText(a,"Use the original Samsung settings.",Toast.LENGTH_SHORT).show();}}
     private void dialog(String title,String msg){showPanel(new AlertDialog.Builder(a).setTitle(title).setMessage(msg).setPositiveButton(android.R.string.ok,null));}
     private void health(){
@@ -197,13 +201,13 @@ final class Dashboard extends LinearLayout {
         MotionUi.exit(dashboardScroll,duration(230),quietMode,dp(20),0,()->{if(!a.isFinishing()&&!a.isDestroyed())a.finish();});
     }
     private AlertDialog showPanel(AlertDialog.Builder builder){AlertDialog d=builder.create();d.show();MotionUi.panel(d,duration(230),quietMode);return d;}
-    void refresh(){try{battery=a.registerReceiver(null,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));int percent=-1;boolean plugged=false;String state="Battery status unavailable";if(battery!=null){int l=battery.getIntExtra(BatteryManager.EXTRA_LEVEL,-1),s=battery.getIntExtra(BatteryManager.EXTRA_SCALE,-1);if(l>=0&&s>0&&l<=s)percent=Math.round(100f*l/s);int status=battery.getIntExtra(BatteryManager.EXTRA_STATUS,0);int plug=battery.getIntExtra(BatteryManager.EXTRA_PLUGGED,0);plugged=plug!=0;switch(status){case BatteryManager.BATTERY_STATUS_FULL:state=plugged?"⚡ Fully charged":"Fully charged";break;case BatteryManager.BATTERY_STATUS_CHARGING:state=plug==BatteryManager.BATTERY_PLUGGED_WIRELESS?"⚡ Wireless charging":"⚡ Charging";try{BatteryManager bm=(BatteryManager)a.getSystemService(Context.BATTERY_SERVICE);long ms=bm.computeChargeTimeRemaining();if(ms>0){long min=Math.max(1,(ms+59999)/60000);state+=" | "+(min/60>0?min/60+" h ":"")+(min%60)+" min until full";}}catch(Throwable ignore){}break;case BatteryManager.BATTERY_STATUS_DISCHARGING:state="Not charging";break;case BatteryManager.BATTERY_STATUS_NOT_CHARGING:state="Not charging";break;}}
+    void refresh(){if(manipulating())return;try{battery=a.registerReceiver(null,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));int percent=-1;boolean plugged=false;String state="Battery status unavailable";if(battery!=null){int l=battery.getIntExtra(BatteryManager.EXTRA_LEVEL,-1),s=battery.getIntExtra(BatteryManager.EXTRA_SCALE,-1);if(l>=0&&s>0&&l<=s)percent=Math.round(100f*l/s);int status=battery.getIntExtra(BatteryManager.EXTRA_STATUS,0);int plug=battery.getIntExtra(BatteryManager.EXTRA_PLUGGED,0);plugged=plug!=0;switch(status){case BatteryManager.BATTERY_STATUS_FULL:state=plugged?"⚡ Fully charged":"Fully charged";break;case BatteryManager.BATTERY_STATUS_CHARGING:state=plug==BatteryManager.BATTERY_PLUGGED_WIRELESS?"⚡ Wireless charging":"⚡ Charging";try{BatteryManager bm=(BatteryManager)a.getSystemService(Context.BATTERY_SERVICE);long ms=bm.computeChargeTimeRemaining();if(ms>0){long min=Math.max(1,(ms+59999)/60000);state+=" | "+(min/60>0?min/60+" h ":"")+(min%60)+" min until full";}}catch(Throwable ignore){}break;case BatteryManager.BATTERY_STATUS_DISCHARGING:state="Not charging";break;case BatteryManager.BATTERY_STATUS_NOT_CHARGING:state="Not charging";break;}}
        boolean plugChanged=pluggedIn!=plugged;currentPercent=percent;pluggedIn=plugged;if(!plugged)reminderFired=false;if(plugged&&chargeReminder>0&&percent>=chargeReminder&&!reminderFired&&hasWindowFocus()){reminderFired=true;Toast.makeText(a,"Charge target reached: "+percent+"%",Toast.LENGTH_LONG).show();}number.setText(percent<0?"—":String.valueOf(percent));bar.setLevel(percent,plugged);
        if(plugged){updateChargingHeader();if(plugChanged){handler.removeCallbacks(powerTick);if(hasWindowFocus())handler.postDelayed(powerTick,quietMode?5000:2000);}}else{handler.removeCallbacks(powerTick);updateMonitor(telemetry.read());chargeDetail.setText("");charge.setTextColor(MUTED);charge.setTypeface(Typeface.create(deviceTypeface,400,false));String e=selected>=0&&selected<3?estimates[selected]:"";charge.setText(e.contains("min")?"Can last about "+e:state);}
        if(ready){showMode(engine.activeMode());updateEstimates();if(protectionCard!=null)protectionCard.refresh();}
        }catch(Throwable t){BatteryHook.log("battery refresh: "+t);}}
     private void updateChargingHeader(){
-        if(!pluggedIn)return;
+        if(!pluggedIn||manipulating())return;
         ChargeTelemetry.Reading r=telemetry.read();
         if(!r.plugged)return;
         charge.setTextColor(WHITE);charge.setTypeface(Typeface.create(deviceTypeface,650,true));
@@ -250,7 +254,7 @@ final class Dashboard extends LinearLayout {
     private int duration(int ms){return quietMode?Math.max(1,ms/2):animationStyle==0?Math.max(1,ms/2):animationStyle==2?Math.round(ms*1.45f):ms;}
     private String reminderLabel(){return chargeReminder==0?"Disabled":"Alert at "+chargeReminder+"% · page only";}
     private void chooseChargeReminder(){int[] values={0,70,80,85,90,95,100};String[] names={"Disabled","70%","80%","85%","90%","95%","100%"};int ix=0;for(int k=0;k<values.length;k++)if(values[k]==chargeReminder)ix=k;showPanel(new AlertDialog.Builder(a).setTitle("Charge target reminder").setSingleChoiceItems(names,ix,(d,w)->{chargeReminder=values[w];reminderFired=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("charge_reminder",chargeReminder).apply();reminderNote.setText(reminderLabel());d.dismiss();refresh();}).setNegativeButton("Cancel",null));}
-    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC4\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nOptical shader: "+(android.os.Build.VERSION.SDK_INT>=33?"Filled morph renderer (hardware Canvas)":"Filled morph renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
+    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC5\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"Crystal glass renderer (hardware Canvas)":"Crystal glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
     private void customize(){
         LinearLayout p=col();p.setPadding(dp(20),dp(8),dp(20),dp(8));add(p,text("Liquid glass strength",15,WHITE,false),-2);
         android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Subtle","Optical glass","Deep glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
@@ -262,7 +266,7 @@ final class Dashboard extends LinearLayout {
         ScrollView popupScroll=new ScrollView(a);popupScroll.addView(p);
         showPanel(new AlertDialog.Builder(a).setTitle("Customize appearance").setView(popupScroll).setNegativeButton("Cancel",null).setNeutralButton("Reset",(d,w)->applyOptions(1,1,true,true,false,true)).setPositiveButton("Apply",(d,w)->applyOptions(Math.max(0,g.getCheckedRadioButtonId()-100),Math.max(0,speeds.getCheckedRadioButtonId()-200),show.isChecked(),watts.isChecked(),quiet.isChecked(),vibration.isChecked())));
     }
-    private void applyOptions(int g,int speed,boolean monitor,boolean watts,boolean quiet,boolean vibration){glassStyle=ReleaseRules.clampOption(g);animationStyle=ReleaseRules.clampOption(speed);showMonitor=monitor;showWatts=watts;quietMode=quiet;haptics=vibration;a.getSharedPreferences("colour_battery_options",0).edit().putInt("glass_style",glassStyle).putInt("animation_style",animationStyle).putBoolean("show_monitor",showMonitor).putBoolean("show_watts",showWatts).putBoolean("quiet_mode",quietMode).putBoolean("haptics",haptics).apply();if(lens!=null)lens.invalidate();if(chargingLens!=null)chargingLens.invalidate();if(monitorSection!=null)monitorSection.setVisibility(showMonitor?VISIBLE:GONE);refresh();}
+    private void applyOptions(int g,int speed,boolean monitor,boolean watts,boolean quiet,boolean vibration){glassStyle=ReleaseRules.clampOption(g);animationStyle=ReleaseRules.clampOption(speed);showMonitor=monitor;showWatts=watts;quietMode=quiet;haptics=vibration;a.getSharedPreferences("colour_battery_options",0).edit().putInt("glass_style",glassStyle).putInt("animation_style",animationStyle).putBoolean("show_monitor",showMonitor).putBoolean("show_watts",showWatts).putBoolean("quiet_mode",quietMode).putBoolean("haptics",haptics).apply();if(lens!=null)lens.invalidate();if(chargingLens!=null)chargingLens.invalidate();if(usageRail!=null)usageRail.invalidate();if(protectionCard!=null)protectionCard.appearanceChanged();if(monitorSection!=null)monitorSection.setVisibility(showMonitor?VISIBLE:GONE);refresh();}
     private void addChargingModes(LinearLayout body){
         LinearLayout c=card(),r=row();chargingRow=r;String[] titles={"Standard\ncharging","Fast & super fast\ncharging"};String[] desc={"Normal speed","Automatically negotiated"};
         for(int i=0;i<2;i++){final int mode=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER);tile.setPadding(dp(6),dp(9),dp(6),dp(9));chargingTiles[i]=tile;TextView z=text(i==0?"ϟ":"ϟϟ",23,WHITE,true);z.setGravity(Gravity.CENTER);add(tile,z,28);TextView title=text(titles[i],13,WHITE,false);title.setGravity(Gravity.CENTER);title.setMaxLines(3);chargingTitles[i]=title;add(tile,title,48);TextView sub=text(desc[i],10,MUTED,false);sub.setGravity(Gravity.CENTER);sub.setMaxLines(2);add(tile,sub,30);LayoutParams lp=new LayoutParams(0,dp(119),1);if(i>0)lp.leftMargin=dp(10);r.addView(tile,lp);tap(tile,()->selectChargingPolicy(mode));}
@@ -322,7 +326,7 @@ final class Dashboard extends LinearLayout {
         });
     }
     @Override protected void onAttachedToWindow(){super.onAttachedToWindow();try{IntentFilter filter=new IntentFilter(Intent.ACTION_BATTERY_CHANGED);filter.addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED);if(android.os.Build.VERSION.SDK_INT>=33)a.registerReceiver(receiver,filter,Context.RECEIVER_EXPORTED);else a.registerReceiver(receiver,filter);registered=true;}catch(Throwable t){BatteryHook.log("receiver: "+t);}try{a.getContentResolver().registerContentObserver(Settings.Global.getUriFor("low_power"),false,modeObserver);observing=true;a.getContentResolver().registerContentObserver(Settings.Global.getUriFor("sem_low_heat_mode"),false,modeObserver);}catch(Throwable t){BatteryHook.log("observer: "+t);}handler.removeCallbacks(tick);if(hasWindowFocus())handler.post(tick);post(()->{ensureBars();applySafeInsets(getRootWindowInsets());requestApplyInsets();});}
-    @Override protected void onDetachedFromWindow(){if(healthScreen!=null){healthScreen.closeNow();healthScreen=null;}MotionUi.restore(dashboardHeader);MotionUi.restore(dashboardScroll);handler.removeCallbacks(tick);handler.removeCallbacks(powerTick);if(observing){try{a.getContentResolver().unregisterContentObserver(modeObserver);}catch(Throwable ignored){}observing=false;}if(registered){try{a.unregisterReceiver(receiver);}catch(Throwable ignored){}registered=false;}if(lens!=null)lens.stop();if(chargingLens!=null)chargingLens.stop();if(protectionCard!=null)protectionCard.dispose();bar.stop();engine.close();super.onDetachedFromWindow();}
+    @Override protected void onDetachedFromWindow(){if(healthScreen!=null){healthScreen.closeNow();healthScreen=null;}MotionUi.restore(dashboardHeader);MotionUi.restore(dashboardScroll);handler.removeCallbacks(tick);handler.removeCallbacks(powerTick);if(observing){try{a.getContentResolver().unregisterContentObserver(modeObserver);}catch(Throwable ignored){}observing=false;}if(registered){try{a.unregisterReceiver(receiver);}catch(Throwable ignored){}registered=false;}if(lens!=null)lens.stop();if(chargingLens!=null)chargingLens.stop();if(usageRail!=null)usageRail.stop();usageOpening=false;if(protectionCard!=null)protectionCard.dispose();bar.stop();engine.close();super.onDetachedFromWindow();}
     private static int blend(int a,int b,float f){return android.graphics.Color.rgb(Math.round(Color.red(a)+(Color.red(b)-Color.red(a))*f),Math.round(Color.green(a)+(Color.green(b)-Color.green(a))*f),Math.round(Color.blue(a)+(Color.blue(b)-Color.blue(a))*f));}
     private final class ModeTouchHost extends FrameLayout {
         private float startX,startY,startSlot;
@@ -334,7 +338,7 @@ final class Dashboard extends LinearLayout {
             switch(e.getActionMasked()){
                 case android.view.MotionEvent.ACTION_DOWN:
                     startX=e.getX();startY=e.getY();startSlot=lens==null?selected:lens.slot;dragging=false;
-                    eligible=!busy&&selected>=0&&selected<3&&startSlot>=0&&step()>0;return false;
+                    eligible=!busy&&selected>=0&&selected<3&&startSlot>=0&&Math.abs(step())>0;return false;
                 case android.view.MotionEvent.ACTION_MOVE:
                     if(eligible&&(Math.abs(e.getY()-startY)>slop&&Math.abs(e.getY()-startY)>Math.abs(e.getX()-startX))){eligible=false;return false;}
                     if(eligible&&Math.abs(e.getX()-startX)>slop&&Math.abs(e.getX()-startX)>Math.abs(e.getY()-startY)*1.2f){
@@ -346,11 +350,11 @@ final class Dashboard extends LinearLayout {
         @Override public boolean onTouchEvent(android.view.MotionEvent e){
             if(!dragging)return super.onTouchEvent(e);
             switch(e.getActionMasked()){
-                case android.view.MotionEvent.ACTION_MOVE: if(step()>0)lens.dragTo(startSlot+(e.getX()-startX)/step());return true;
+                case android.view.MotionEvent.ACTION_MOVE: if(Math.abs(step())>0)lens.dragTo(startSlot+(e.getX()-startX)/step());return true;
                 case android.view.MotionEvent.ACTION_UP:
                 case android.view.MotionEvent.ACTION_CANCEL:
                     boolean cancel=e.getActionMasked()==android.view.MotionEvent.ACTION_CANCEL;
-                    int next=cancel?engine.activeMode():Math.max(0,Math.min(2,Math.round(lens.slot)));
+                    if(!cancel&&Math.abs(step())>0)lens.dragTo(startSlot+(e.getX()-startX)/step());int next=cancel?engine.activeMode():Math.max(0,Math.min(2,Math.round(lens.slot)));
                     dragging=false;modeDragging=false;eligible=false;getParent().requestDisallowInterceptTouchEvent(false);
                     if(!cancel&&next!=engine.activeMode()){if(haptics)performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);choose(next);}else{lens.settle(engine.activeMode());}
                     return true;
@@ -364,79 +368,19 @@ final class Dashboard extends LinearLayout {
         float step(){return chargingTiles[1].getLeft()-chargingTiles[0].getLeft();}
         @Override public boolean onInterceptTouchEvent(android.view.MotionEvent e){
             switch(e.getActionMasked()){
-                case 0:x=e.getX();y=e.getY();start=chargingLens==null?-1:chargingLens.slot;eligible=start>=0&&step()>0;drag=false;return false;
+                case 0:x=e.getX();y=e.getY();start=chargingLens==null?-1:chargingLens.slot;eligible=start>=0&&Math.abs(step())>0;drag=false;return false;
                 case 2:float dx=e.getX()-x,dy=e.getY()-y;if(Math.abs(dy)>slop&&Math.abs(dy)>Math.abs(dx)){eligible=false;return false;}if(eligible&&Math.abs(dx)>slop&&Math.abs(dx)>Math.abs(dy)*1.2f){drag=true;chargingDragging=true;getParent().requestDisallowInterceptTouchEvent(true);chargingLens.beginDrag();chargingLens.preview(start+dx/step());return true;}return false;
                 default:return false;
             }
         }
         @Override public boolean onTouchEvent(android.view.MotionEvent e){if(!drag)return super.onTouchEvent(e);switch(e.getActionMasked()){
-            case 2:if(step()>0)chargingLens.preview(start+(e.getX()-x)/step());return true;
-            case 1:case 3:boolean cancel=e.getActionMasked()==3;int target=Math.round(chargingLens.slot);drag=false;chargingDragging=false;getParent().requestDisallowInterceptTouchEvent(false);if(cancel)refreshChargingPolicy();else selectChargingPolicy(target);return true;
+            case 2:if(Math.abs(step())>0)chargingLens.preview(start+(e.getX()-x)/step());return true;
+            case 1:case 3:boolean cancel=e.getActionMasked()==3;if(!cancel&&Math.abs(step())>0)chargingLens.preview(start+(e.getX()-x)/step());int target=Math.round(chargingLens.slot);drag=false;chargingDragging=false;getParent().requestDisallowInterceptTouchEvent(false);if(cancel)refreshChargingPolicy();else selectChargingPolicy(target);return true;
             default:return true;
         }}
     }
-    private final class ChargingLens extends MorphLens {ChargingLens(){super(chargingTiles);}}
-    private final class SelectionLens extends MorphLens {SelectionLens(){super(modes);}void dragTo(float value){preview(value);}}
-    // One draw-only layer under the real labels; no snapshots, per-frame shader allocations,
-    // blur, or runtime shader compilation. Both selectors share the same geometry and clock.
-    private class MorphLens extends View {
-        final LinearLayout[] tiles;final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);final Path liquid=new Path();final RectF cardRect=new RectF();
-        float slot=-1,lead=-1,tail=-1,target=-1;ValueAnimator anim;boolean dragging;
-        Shader body,rim,sheen;int cachedStyle=-1,cachedHeight=-1;boolean cachedQuiet;
-        MorphLens(LinearLayout[] tiles){super(a);this.tiles=tiles;setClickable(false);setFocusable(false);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
-        void stop(){if(anim!=null){anim.removeAllListeners();anim.cancel();anim=null;}target=-1;}
-        void beginDrag(){stop();dragging=true;}
-        private float clamp(float n){return Math.max(0,Math.min(tiles.length-1,n));}
-        void preview(float value){
-            float next=clamp(value),old=slot;slot=next;
-            if(old<0){lead=tail=next;}else{lead=next;tail=LiquidMotion.dragTail(tail,next);}
-            postInvalidateOnAnimation();
-        }
-        void settle(int next){
-            dragging=false;
-            if(next<0||next>=tiles.length){stop();slot=lead=tail=-1;invalidate();return;}
-            if(target==next&&anim!=null&&anim.isRunning())return;
-            if(slot<0){stop();slot=lead=tail=next;target=next;invalidate();return;}
-            if(Math.abs(lead-next)<.001f&&Math.abs(tail-next)<.001f){stop();slot=lead=tail=next;target=next;invalidate();return;}
-            stop();target=next;final float firstLead=lead,firstTail=tail,firstSlot=slot;
-            anim=ValueAnimator.ofFloat(0f,1f);anim.setInterpolator(new android.view.animation.LinearInterpolator());
-            anim.setDuration(duration(Math.abs(next-firstSlot)>1.1f?520:420));
-            anim.addUpdateListener(v->{float f=(float)v.getAnimatedValue();lead=LiquidMotion.mix(firstLead,next,LiquidMotion.leading(f));tail=LiquidMotion.mix(firstTail,next,LiquidMotion.trailing(f));slot=LiquidMotion.mix(firstSlot,next,LiquidMotion.leading(f));postInvalidateOnAnimation();});
-            anim.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){lead=tail=slot=next;invalidate();}});anim.start();
-        }
-        @Override protected void onSizeChanged(int w,int h,int oldW,int oldH){cachedHeight=-1;invalidate();}
-        private void colors(int height){
-            if(cachedHeight==height&&cachedStyle==glassStyle&&cachedQuiet==quietMode)return;
-            cachedHeight=height;cachedStyle=glassStyle;cachedQuiet=quietMode;
-            int[] palette=glassStyle==0?new int[]{0xff345f3e,0xff23412c,0xff32573c}:glassStyle==2?new int[]{0xff5aa866,0xff245e35,0xff173c25,0xff3c8550}:new int[]{0xff468952,0xff285b36,0xff21452c,0xff367444};
-            body=new LinearGradient(0,0,0,height,palette,null,Shader.TileMode.CLAMP);
-            rim=new LinearGradient(0,0,0,height,new int[]{0xffb2f8ba,0xff5d9a65,0xff3c7349,0xff87d997},null,Shader.TileMode.CLAMP);
-            sheen=new LinearGradient(0,0,0,height,new int[]{0x52d7ffde,0x10c6ffce,0x00000000,0x24a1f8b3},new float[]{0,.23f,.66f,1},Shader.TileMode.CLAMP);
-        }
-        private float xAt(float v){int i=Math.min(tiles.length-2,Math.max(0,(int)Math.floor(v)));return LiquidMotion.mix(tiles[i].getLeft(),tiles[i+1].getLeft(),v-i);}
-        @Override protected void onDraw(Canvas c){
-            if(tiles[0]==null||tiles[0].getWidth()<=0)return;
-            paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(TILE);
-            for(LinearLayout tile:tiles){cardRect.set(tile.getLeft(),tile.getTop(),tile.getRight(),tile.getBottom());c.drawRoundRect(cardRect,dp(22),dp(22),paint);}
-            if(slot<0)return;
-            int width=tiles[0].getWidth(),height=tiles[0].getHeight();if(height<=0)return;colors(height);
-            float x1=xAt(lead),x2=xAt(tail),left=Math.min(x1,x2)+dp(1),right=Math.max(x1,x2)+width-dp(1);
-            float top=tiles[0].getTop()+dp(1),bottom=tiles[0].getBottom()-dp(1),span=right-left;
-            float r=Math.min(dp(22),(bottom-top)*.25f),neck=LiquidMotion.neck(Math.abs(lead-tail),bottom-top,quietMode||glassStyle==0?.08f:glassStyle==2?.27f:.19f);
-            float mid=(left+right)*.5f,control=span*.23f;
-            liquid.reset();liquid.moveTo(left+r,top);
-            liquid.cubicTo(left+r+control,top,mid-control*.5f,top+neck,mid,top+neck);
-            liquid.cubicTo(mid+control*.5f,top+neck,right-r-control,top,right-r,top);
-            liquid.quadTo(right,top,right,top+r);liquid.lineTo(right,bottom-r);liquid.quadTo(right,bottom,right-r,bottom);
-            liquid.cubicTo(right-r-control,bottom,mid+control*.5f,bottom-neck,mid,bottom-neck);
-            liquid.cubicTo(mid-control*.5f,bottom-neck,left+r+control,bottom,left+r,bottom);
-            liquid.quadTo(left,bottom,left,bottom-r);liquid.lineTo(left,top+r);liquid.quadTo(left,top,left+r,top);liquid.close();
-            paint.setShader(body);c.drawPath(liquid,paint);
-            if(!quietMode){paint.setShader(sheen);c.drawPath(liquid,paint);}
-            paint.setStyle(Paint.Style.STROKE);paint.setStrokeJoin(Paint.Join.ROUND);paint.setStrokeWidth(dp(glassStyle==2?1.6f:1.1f));paint.setShader(rim);c.drawPath(liquid,paint);
-            paint.setStyle(Paint.Style.FILL);paint.setShader(null);
-        }
-    }
+    private final class ChargingLens extends GlassRail {ChargingLens(){super(Dashboard.this.a,chargingTiles,()->glassStyle,()->quietMode,Dashboard.this::duration,false);}}
+    private final class SelectionLens extends GlassRail {SelectionLens(){super(Dashboard.this.a,modes,()->glassStyle,()->quietMode,Dashboard.this::duration,false);}void dragTo(float value){preview(value);}}
     private final class Gauge extends View {
         private final Paint p=new Paint(3);private final Path clip=new Path();private final RectF bounds=new RectF();
         private float level=0,wanted=-1,front=1;private int base=0xff17db26,targetColor=base;private boolean known=false,connected;
