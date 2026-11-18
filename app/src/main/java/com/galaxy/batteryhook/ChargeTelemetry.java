@@ -22,7 +22,7 @@ final class ChargeTelemetry {
             if(!r.plugged||manager==null){reset();return r;}
             r.ua=manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
             if(r.ua!=Integer.MIN_VALUE&&r.ua>=-15000000&&r.ua<=15000000&&r.mv>=2500&&r.mv<=5000){
-                double watts=Math.max(0,r.ua)*r.mv/1000000000d;
+                double watts=Math.max(0,r.ua)*(double)r.mv/1000000000d;
                 long now=android.os.SystemClock.elapsedRealtime();if(Double.isNaN(smooth)||now-sampleTime>5000||!r.charging||watts==0)smooth=watts;else if(now-sampleTime>=650)smooth=.48*smooth+.52*watts;sampleTime=now;
                 r.wattsText=String.format(Locale.US,"%.1f W",smooth);
             }else reset();
