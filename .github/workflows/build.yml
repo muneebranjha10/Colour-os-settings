@@ -24,15 +24,15 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Require all twenty-three regression checks
+      - name: Require all thirty regression checks
         run: |
           python3 - <<'PY'
           import glob,xml.etree.ElementTree as E
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           suites=[E.parse(f).getroot() for f in files]
-          assert sum(int(s.get('tests',0)) for s in suites)>=23
+          assert sum(int(s.get('tests',0)) for s in suites)>=30
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
-          print('Twenty-three or more regression checks passed')
+          print('Thirty or more regression checks passed')
           PY
       - name: Verify glass touch wiring
         run: |
@@ -67,23 +67,40 @@ jobs:
           assert 'healthScreen==null&&isAttachedToWindow()' in dashboard
           print('Health page navigation wiring verified')
           PY
+      - name: Verify refresh and settings wiring
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('app/src/main/java/com/galaxy/batteryhook')
+          d=(root/'Dashboard.java').read_text()
+          h=(root/'HealthScreen.java').read_text()
+          assert 'thermalNote=settingsItem(custom' in d and 'reminderNote=settingsItem(custom' in d
+          assert 'settingsItem(parent,label,null' in d
+          assert 'if(group.getChildCount()==0)return;' in d
+          assert 'r.addView(new SettingsChevron()' in d
+          assert 'refreshHandler.postDelayed(autoRead,quiet?60000:30000)' in h
+          assert 'root.hasWindowFocus()' in h
+          assert 'refreshHandler.removeCallbacks(autoRead)' in h
+          assert 'token!=generation' in h
+          print('Health refresh and aligned settings wiring verified')
+          PY
       - name: Verify APK and Xposed entry
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC7.apk
+          cp "$APK" ColourOS-Battery-RC8.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC7.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-RC8.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC7-APK
+          name: GalaxyBattery-RC8-APK
           path: |
-            ColourOS-Battery-RC7.apk
+            ColourOS-Battery-RC8.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc7-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC7.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC7 | Made by Muneeb" --notes-file docs/RELEASE-RC7.md --prerelease
+          TAG=rc8-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC8.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC8 | Made by Muneeb" --notes-file docs/RELEASE-RC8.md --prerelease

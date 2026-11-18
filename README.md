@@ -21,7 +21,7 @@ ColourOS Battery replaces the appearance of the supported native Battery activit
 
 | Dashboard | Custom studio |
 | --- | --- |
-| Live battery percentage and charging estimates | Three neutral liquid-glass strengths |
+| Live battery percentage and charging estimates | Three selectable glass palettes |
 | Battery-side charging power and recent graph | Adjustable animation speed |
 | ASOC, BSOH and cycle count with source labels | Draggable, filled morphing power and charging selectors |
 | Inline battery protection on supported firmware | Optional haptics and wattage display |
@@ -45,6 +45,10 @@ Removed the stationary rectangular Android press ripple from the power, charging
 
 Neutral charcoal and silver glass, restrained green selection accents, a white/silver charge-limit thumb, and an in-window Battery Health crossfade. The dashboard stays stationary when returning; polling pauses while health is open. Toolbar/system back share the close path (legacy fallback is scoped to BatteryActivity). Native Samsung pages retain their own transitions.
 
+### RC8 Classic Flow
+
+Classic green glass, original emerald and neutral silver options; Smooth motion uses 22% longer base timing and Relaxed 60% longer. Lower settings share aligned adaptive rows. Health refreshes every 30 seconds (60 in Low Power UI) while visible and focused. Readings show source and check time; live kernel counters take precedence. Samsung saved values are distinguished from live ASOC. Firmware may update cycles infrequently; no synthetic increments or assumption of 100% health. Imported snapshots pause automatic refresh until manual refresh or reopening. No new root grants.
+
 ## Compatibility
 
 **All Samsung Galaxy devices are targeted for support — compatibility is still in testing.** Root and LSPosed are required. This is not a guarantee that every model or firmware works yet.
@@ -56,7 +60,7 @@ Neutral charcoal and silver glass, restrained green selection accents, a white/s
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC7 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC8 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -82,7 +86,7 @@ The previously reported Balanced-mode issue has not been investigated further an
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs twenty-three automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs thirty automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 

@@ -40,8 +40,8 @@ class GlassRail extends View {
         int[] palette=ColorOsPalette.body(variant);
         body=new LinearGradient(0,0,0,Math.max(1,h),palette,null,Shader.TileMode.CLAMP);
         edge=new LinearGradient(0,0,0,Math.max(1,h),ColorOsPalette.edge(variant),new float[]{0,.28f,.68f,1},Shader.TileMode.CLAMP);
-        shine=new LinearGradient(0,0,0,Math.max(1,h),new int[]{0x32ffffff,0x0cffffff,0x00ffffff,0x00ffffff,0x20ffffff},new float[]{0,.13f,.43f,.74f,1},Shader.TileMode.CLAMP);
-        glint=new RadialGradient(0,0,1,new int[]{0x45ffffff,0x18ffffff,0x00ffffff},new float[]{0,.42f,1},Shader.TileMode.CLAMP);
+        shine=new LinearGradient(0,0,0,Math.max(1,h),ColorOsPalette.sheen(variant),new float[]{0,.13f,.43f,.74f,1},Shader.TileMode.CLAMP);
+        glint=new RadialGradient(0,0,1,ColorOsPalette.glint(variant),new float[]{0,.42f,1},Shader.TileMode.CLAMP);
     }
     @Override protected void onDraw(Canvas canvas){
         if(tiles.length<2||tiles[0]==null||tiles[0].getWidth()<=0)return;

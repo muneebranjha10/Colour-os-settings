@@ -12,7 +12,7 @@ import android.view.Window;
 import android.view.animation.PathInterpolator;
 
 final class MotionUi {
-    private static final PathInterpolator ENTER=new PathInterpolator(.18f,.82f,.22f,1f);
+    private static final PathInterpolator ENTER=new PathInterpolator(.24f,.35f,.25f,1f);
     private static final PathInterpolator EXIT=new PathInterpolator(.33f,0f,.65f,1f);
     static boolean enabled(){return ValueAnimator.areAnimatorsEnabled();}
     private static GradientDrawable rounded(View v,float radiusDp,int color){

@@ -32,13 +32,13 @@ final class GlassLimit extends SeekBar {
         if(tracking)return;
         if(target==n&&motion!=null&&motion.isRunning())return;
         if(Math.abs(visual-n)<.01f||quiet.getAsBoolean()||!MotionUi.enabled()){stopMotion();visual=n;target=n;invalidate();return;}
-        stopMotion();target=n;final int finish=n;motion=ValueAnimator.ofFloat(visual,n);motion.setDuration(duration.applyAsInt(210));motion.setInterpolator(new PathInterpolator(.15f,.82f,.23f,1));motion.addUpdateListener(v->{visual=(float)v.getAnimatedValue();postInvalidateOnAnimation();});motion.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){visual=finish;invalidate();}});motion.start();
+        stopMotion();target=n;final int finish=n;motion=ValueAnimator.ofFloat(visual,n);motion.setDuration(duration.applyAsInt(210));motion.setInterpolator(new PathInterpolator(.24f,.35f,.25f,1));motion.addUpdateListener(v->{visual=(float)v.getAnimatedValue();postInvalidateOnAnimation();});motion.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){visual=finish;invalidate();}});motion.start();
     }
     private void stopMotion(){if(motion!=null){motion.removeAllListeners();motion.cancel();motion=null;}target=-1;}
     void stop(){stopMotion();if(pressAnim!=null){pressAnim.cancel();pressAnim=null;}tracking=false;press=0;}
     private void pressTo(float amount){
         if(pressAnim!=null)pressAnim.cancel();if(quiet.getAsBoolean()||!MotionUi.enabled()){press=0;invalidate();return;}
-        pressAnim=ValueAnimator.ofFloat(press,amount);pressAnim.setDuration(duration.applyAsInt(160));pressAnim.setInterpolator(new PathInterpolator(.2f,.8f,.2f,1));pressAnim.addUpdateListener(v->{press=(float)v.getAnimatedValue();postInvalidateOnAnimation();});pressAnim.start();
+        pressAnim=ValueAnimator.ofFloat(press,amount);pressAnim.setDuration(duration.applyAsInt(160));pressAnim.setInterpolator(new PathInterpolator(.24f,.35f,.25f,1));pressAnim.addUpdateListener(v->{press=(float)v.getAnimatedValue();postInvalidateOnAnimation();});pressAnim.start();
     }
     private void shaders(){int v=style.getAsInt();if(shaderStyle==v)return;shaderStyle=v;
         track=new LinearGradient(0,-1,0,1,0xff424242,0xff292929,Shader.TileMode.CLAMP);

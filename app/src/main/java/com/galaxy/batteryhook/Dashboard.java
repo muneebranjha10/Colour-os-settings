@@ -149,32 +149,52 @@ final class Dashboard extends LinearLayout {
         liveSession=text("Connect a charger to start monitoring",13,WHITE,false);add(monitor,liveSession,-2);space(monitor,12);
         powerGraph=new PowerGraph();add(monitor,powerGraph,84);space(monitor,8);liveSource=text("Measured battery power · current page only",11,MUTED,false);add(monitor,liveSource,-2);space(monitor,16);
         item(monitor,"Detailed battery diagnostics",null,this::chargingInfo);add(monitorSection,monitor,-2);add(body,monitorSection,-2);monitorSection.setVisibility(showMonitor?VISIBLE:GONE);
-        space(body,22);section(body,"Custom features");LinearLayout custom=card();item(custom,"Customize appearance","Glass strength, animation speed and monitor visibility",this::customize);space(custom,12);line(custom);space(custom,12);thermalNote=text(thermalLimit==0?"Disabled · only while this page is open":"Warn at "+thermalLimit+" °C · while this page is open",13,MUTED,false);item(custom,"Battery temperature alert",null,this::chooseThermalAlert);space(custom,5);add(custom,thermalNote,-2);space(custom,12);line(custom);space(custom,12);item(custom,"Charge target reminder","Optional alert while this page is open",this::chooseChargeReminder);reminderNote=text(reminderLabel(),13,MUTED,false);add(custom,reminderNote,-2);space(custom,12);line(custom);space(custom,12);item(custom,"Compatibility report","Device, software and available controls",this::compatibility);add(body,custom,-2);
-        space(body,22);section(body,"Power & performance");LinearLayout power=card();
+        LinearLayout custom=settingsCard();
+        settingsItem(custom,"Customize appearance","Glass style, animation speed and monitor",this::customize);
+        thermalNote=settingsItem(custom,"Battery temperature alert",thermalLimit==0?"Disabled · while this page is open":"Warn at "+thermalLimit+" °C · while this page is open",this::chooseThermalAlert);
+        reminderNote=settingsItem(custom,"Charge target reminder",reminderLabel(),this::chooseChargeReminder);
+        settingsItem(custom,"Compatibility report","Device, software and available controls",this::compatibility);
+        addSettingsGroup(body,"Custom features",custom);
+        LinearLayout power=settingsCard();
         nativeItem(power,"Power saving settings","com.samsung.android.sm.powermode.ui.PowerModeSettingsActivity");
         nativeItem(power,"Performance profile","com.samsung.android.sm.battery.ui.setting.PerformanceOptimizationActivity");
         nativeItem(power,"Enhanced processing","com.samsung.android.sm.battery.ui.setting.EnhancedProcessingActivity");
-        nativeItem(power,"Adaptive power saving","com.samsung.android.sm.powermode.ui.AdaptivePowerSavingActivity");if(power.getChildCount()>0)add(body,power,-2);
-        space(body,18);section(body,"Charging & protection");LinearLayout charging=card();
+        nativeItem(power,"Adaptive power saving","com.samsung.android.sm.powermode.ui.AdaptivePowerSavingActivity");addSettingsGroup(body,"Power & performance",power);
+        LinearLayout charging=settingsCard();
         nativeItem(charging,"Charging settings","com.samsung.android.sm.battery.ui.BatteryAdvancedMenuActivity");
         nativeItem(charging,"Battery protection","com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity");
         nativeItem(charging,"Fast wireless charging","com.samsung.android.sm.battery.ui.fastwirelesscharging.FastWirelessActivity");
-        nativeItem(charging,"Wireless power sharing","com.samsung.android.sm.powershare.ui.PowerShareActivity");if(charging.getChildCount()>0)add(body,charging,-2);
-        space(body,18);section(body,"App battery management");LinearLayout apps=card();
+        nativeItem(charging,"Wireless power sharing","com.samsung.android.sm.powershare.ui.PowerShareActivity");addSettingsGroup(body,"Charging & protection",charging);
+        LinearLayout apps=settingsCard();
         nativeItem(apps,"Background usage limits","com.samsung.android.sm.battery.ui.setting.AppPowerManagementActivity");
-        nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");if(apps.getChildCount()>0)add(body,apps,-2);
-        space(body,18);LinearLayout stockCard=card();item(stockCard,"Original Samsung Battery","All native battery features",original);add(body,stockCard,-2);
+        nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");addSettingsGroup(body,"App battery management",apps);
+        LinearLayout stockCard=settingsCard();settingsItem(stockCard,"Original Samsung Battery","All native battery features",original);addSettingsGroup(body,null,stockCard);
         space(body,27);TextView credit=text("Made by Muneeb",14,0xffb6b6b6,false);credit.setGravity(Gravity.CENTER);credit.setIncludeFontPadding(true);add(body,credit,-2);
-        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC7",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
+        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC8",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
         ready=true;refresh();
         MotionUi.enter(header,duration(240),quietMode,0,dp(8));MotionUi.enter(scroll,duration(340),quietMode,0,dp(20));
     }
     private TextView chevron(){TextView t=text("›",27,0xff696969,false);t.setGravity(Gravity.CENTER);return t;}
     private void item(LinearLayout parent,String name,String desc,Runnable action){LinearLayout r=row();LinearLayout t=col();add(t,text(name,18,WHITE,false),-2);if(desc!=null){space(t,5);TextView d=text(desc,14,MUTED,false);d.setLineSpacing(dp(3),1);add(t,d,-2);}r.addView(t,new LayoutParams(0,-2,1));r.addView(chevron(),new LayoutParams(dp(22),dp(36)));add(parent,r,-2);tap(r,action);}
+    private LinearLayout settingsCard(){LinearLayout l=card();l.setPadding(0,dp(5),0,dp(5));l.setClipToOutline(true);return l;}
+    private void addSettingsGroup(LinearLayout body,String label,LinearLayout group){
+        if(group.getChildCount()==0)return;space(body,20);if(label!=null)section(body,label);add(body,group,-2);
+    }
+    private TextView settingsItem(LinearLayout parent,String name,String description,Runnable action){
+        if(parent.getChildCount()>0){View separator=new View(a);separator.setBackgroundColor(0xff303030);LayoutParams divider=new LayoutParams(-1,Math.max(1,dp(.65f)));divider.setMarginStart(dp(18));divider.setMarginEnd(dp(18));parent.addView(separator,divider);}
+        LinearLayout r=row();r.setMinimumHeight(dp(description==null?58:74));r.setPaddingRelative(dp(18),dp(12),dp(18),dp(12));
+        LinearLayout labels=col();labels.setGravity(Gravity.CENTER_VERTICAL);LayoutParams lp=new LayoutParams(0,-2,1);lp.setMarginEnd(dp(14));r.addView(labels,lp);
+        TextView title=text(name,15.5f,WHITE,false);title.setIncludeFontPadding(true);title.setGravity(Gravity.START);title.setBreakStrategy(0);title.setHyphenationFrequency(0);add(labels,title,-2);
+        TextView sub=null;if(description!=null){sub=text(description,12.5f,MUTED,false);sub.setIncludeFontPadding(true);sub.setGravity(Gravity.START);sub.setLineSpacing(dp(1),1);add(labels,sub,-2);}
+        r.addView(new SettingsChevron(),new LayoutParams(dp(18),dp(24)));add(parent,r,-2);tap(r,action);return sub;
+    }
+    private final class SettingsChevron extends View{
+        final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);SettingsChevron(){super(a);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
+        @Override protected void onDraw(Canvas c){float cx=getWidth()/2f,cy=getHeight()/2f,dx=dp(3),dy=dp(5);float sign=getLayoutDirection()==LAYOUT_DIRECTION_RTL?-1:1;paint.setColor(0xff898989);paint.setStrokeWidth(dp(1.7f));paint.setStrokeCap(Paint.Cap.ROUND);c.drawLine(cx-sign*dx,cy-dy,cx+sign*dx,cy,paint);c.drawLine(cx+sign*dx,cy,cx-sign*dx,cy+dy,paint);}
+    }
     private void nativeItem(LinearLayout parent,String label,String cls){
         try{android.content.pm.ActivityInfo info=a.getPackageManager().getActivityInfo(new android.content.ComponentName(a.getPackageName(),cls),0);if(!info.enabled||!info.applicationInfo.enabled)return;}catch(Throwable t){return;}
-        if(parent.getChildCount()>0)line(parent);LinearLayout r=row();r.setMinimumHeight(dp(52));r.setPadding(0,dp(9),0,dp(9));
-        TextView title=text(label,15,WHITE,false);title.setIncludeFontPadding(true);r.addView(title,new LayoutParams(0,-2,1));r.addView(chevron(),new LayoutParams(dp(22),dp(36)));add(parent,r,-2);tap(r,()->openNative(cls));
+        settingsItem(parent,label,null,()->openNative(cls));
     }
     private void showInsights(){
         String mode=selected==0?"Balanced":selected==1?"Power saving":selected==2?"High performance":"Unknown";
@@ -192,7 +212,7 @@ final class Dashboard extends LinearLayout {
         MotionUi.restore(dashboardHeader);MotionUi.restore(dashboardScroll);
         handler.removeCallbacks(tick);handler.removeCallbacks(powerTick);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-        healthScreen=new HealthScreen(a,host,()->openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity"),duration(230),quietMode,()->{
+        healthScreen=new HealthScreen(a,host,()->openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity"),duration(250),quietMode,()->{
             healthScreen=null;setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
             if(isAttachedToWindow()&&hasWindowFocus()&&!a.isFinishing()&&!a.isDestroyed()){
                 ensureBars();handler.removeCallbacks(tick);handler.post(tick);handler.removeCallbacks(powerTick);if(pluggedIn)handler.post(powerTick);
@@ -257,14 +277,14 @@ final class Dashboard extends LinearLayout {
         int[] values={0,40,42,45};String[] names={"Disabled","40 °C","42 °C","45 °C"};int checked=0;for(int i=0;i<values.length;i++)if(values[i]==thermalLimit)checked=i;
         showPanel(new AlertDialog.Builder(a).setTitle("Battery temperature alert").setSingleChoiceItems(names,checked,(d,w)->{thermalLimit=values[w];thermalWarned=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("thermal_alert",thermalLimit).apply();thermalNote.setText(thermalLimit==0?"Disabled · only while this page is open":"Warn at "+thermalLimit+" °C · while this page is open");d.dismiss();}).setNegativeButton("Cancel",null));
     }
-    private int duration(int ms){return quietMode?Math.max(1,ms/2):animationStyle==0?Math.max(1,ms/2):animationStyle==2?Math.round(ms*1.45f):ms;}
+    private int duration(int ms){return PageMotion.duration(ms,animationStyle,quietMode);}
     private String reminderLabel(){return chargeReminder==0?"Disabled":"Alert at "+chargeReminder+"% · page only";}
     private void chooseChargeReminder(){int[] values={0,70,80,85,90,95,100};String[] names={"Disabled","70%","80%","85%","90%","95%","100%"};int ix=0;for(int k=0;k<values.length;k++)if(values[k]==chargeReminder)ix=k;showPanel(new AlertDialog.Builder(a).setTitle("Charge target reminder").setSingleChoiceItems(names,ix,(d,w)->{chargeReminder=values[w];reminderFired=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("charge_reminder",chargeReminder).apply();reminderNote.setText(reminderLabel());d.dismiss();refresh();}).setNegativeButton("Cancel",null));}
-    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC7\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
+    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC8\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
     private void customize(){
         LinearLayout p=col();p.setPadding(dp(20),dp(8),dp(20),dp(8));add(p,text("Liquid glass strength",15,WHITE,false),-2);
-        android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Subtle charcoal","ColorOS glass","Deep silver glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
-        add(p,text("Animation speed",15,WHITE,false),-2);android.widget.RadioGroup speeds=new android.widget.RadioGroup(a);String[] speedNames={"Fast","Smooth","Slow"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(200+k);b.setText(speedNames[k]);speeds.addView(b);if(k==animationStyle)speeds.check(b.getId());}add(p,speeds,-2);
+        android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Neutral silver glass","Classic ColorOS glass","Original emerald glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
+        add(p,text("Animation speed",15,WHITE,false),-2);android.widget.RadioGroup speeds=new android.widget.RadioGroup(a);String[] speedNames={"Fast","Smooth","Relaxed"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(200+k);b.setText(speedNames[k]);speeds.addView(b);if(k==animationStyle)speeds.check(b.getId());}add(p,speeds,-2);
         Switch show=new Switch(a);show.setText("Show live battery monitor");show.setChecked(showMonitor);add(p,show,-2);
         Switch watts=new Switch(a);watts.setText("Show charging wattage");watts.setChecked(showWatts);add(p,watts,-2);
         Switch quiet=new Switch(a);quiet.setText("Low power UI (less polling and effects)");quiet.setChecked(quietMode);add(p,quiet,-2);

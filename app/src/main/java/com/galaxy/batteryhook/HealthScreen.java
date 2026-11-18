@@ -34,6 +34,10 @@ final class HealthScreen {
     private TextView source,summary;
     private HealthReader.Reading reading;
     private int generation;
+    private final android.os.Handler refreshHandler=new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable autoRead=new Runnable(){public void run(){if(closed||closing||root==null||!root.isAttachedToWindow())return;if(root.isShown()&&root.hasWindowFocus()&&(reading==null||!reading.imported))load();else scheduleRead();}};
+    private void scheduleRead(){refreshHandler.removeCallbacks(autoRead);if(!closed&&!closing)refreshHandler.postDelayed(autoRead,quiet?60000:30000);}
+    private final java.util.Map<String,TextView> fieldValues=new java.util.LinkedHashMap<>();
     private ValueAnimator animation;
     private static final int WHITE=0xffeeeeee,MUTE=0xffa5a5a5,GREEN=ColorOsPalette.ACCENT,CARD=0xff1b1b1b;
     HealthScreen(Activity a,android.widget.FrameLayout host,Runnable protection,int duration,boolean quiet,Runnable onClosed){this.a=a;this.host=host;this.protection=protection;this.duration=duration;this.quiet=quiet;this.onClosed=onClosed;font=new TextView(a).getTypeface();}
@@ -65,50 +69,56 @@ final class HealthScreen {
         root.setAlpha(MotionUi.enabled()?0f:1f);host.addView(root,new android.widget.FrameLayout.LayoutParams(-1,-1));root.bringToFront();root.requestFocus();
         WindowBars.bind(a.getWindow(),root);root.post(()->{if(!closed){WindowBars.schedule(a.getWindow(),root);root.requestApplyInsets();}});
         if(android.os.Build.VERSION.SDK_INT>=33){try{backCallback=this::back;a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_OVERLAY,backCallback);}catch(Throwable ignored){backCallback=null;}}
-        if(MotionUi.enabled())root.animate().alpha(1).setDuration(PageMotion.time(duration,quiet)).setInterpolator(new android.view.animation.PathInterpolator(.2f,.65f,.3f,1f)).start();
+        if(MotionUi.enabled())root.animate().alpha(1).setDuration(PageMotion.time(duration,quiet)).setInterpolator(new android.view.animation.PathInterpolator(.28f,.08f,.25f,1f)).start();
         load();
     }
     void back(){close(null);}
     private void close(Runnable next){
-        if(closing||closed)return;closing=true;afterClose=next;generation++;if(animation!=null)animation.cancel();
+        if(closing||closed)return;closing=true;refreshHandler.removeCallbacks(autoRead);afterClose=next;generation++;if(animation!=null)animation.cancel();
         if(root==null||!root.isAttachedToWindow()||!MotionUi.enabled()){finishDismiss();return;}
         root.animate().cancel();
-        root.animate().alpha(0).setDuration(PageMotion.healthExit(duration,quiet)).setInterpolator(new android.view.animation.PathInterpolator(.25f,.0f,.2f,1f)).withEndAction(this::finishDismiss).start();
+        root.animate().alpha(0).setDuration(PageMotion.healthExit(duration,quiet)).setInterpolator(new android.view.animation.PathInterpolator(.35f,.08f,.25f,1f)).withEndAction(this::finishDismiss).start();
     }
     void closeNow(){if(closed)return;closing=true;afterClose=null;finishDismiss();}
     private void finishDismiss(){
-        if(closed)return;closed=true;generation++;if(animation!=null)animation.cancel();
+        if(closed)return;closed=true;refreshHandler.removeCallbacks(autoRead);generation++;if(animation!=null)animation.cancel();
         if(backCallback!=null&&android.os.Build.VERSION.SDK_INT>=33){try{a.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);}catch(Throwable ignored){}backCallback=null;}
         if(root!=null){root.animate().cancel();if(root.getParent()==host)host.removeView(root);}
         onClosed.run();Runnable next=afterClose;afterClose=null;if(next!=null&&!a.isFinishing()&&!a.isDestroyed())next.run();
     }
     private void load(){
-        if(closing||loading)return;loading=true;final int token=++generation;source.setText("Reading battery health…");
-        new Thread(()->{HealthReader.Reading r=HealthReader.read(a);a.runOnUiThread(()->{if(token==generation&&!closed&&!closing&&root.isAttachedToWindow()){loading=false;reading=r;render();}});},"BatteryHealthRead").start();
+        if(closing||closed)return;if(loading){scheduleRead();return;}loading=true;final int token=++generation;refreshHandler.removeCallbacks(autoRead);
+        if(reading==null)source.setText("Reading battery health…");
+        new Thread(()->{HealthReader.Reading result;try{result=HealthReader.read(a);}catch(Throwable t){result=new HealthReader.Reading();BatteryHook.log("Health read failed: "+t);}final HealthReader.Reading fresh=result;
+            a.runOnUiThread(()->{if(token!=generation||closed||closing||!root.isAttachedToWindow())return;loading=false;reading=fresh;render();scheduleRead();});
+        },"BatteryHealthRead").start();
     }
     private void field(String label,String value){
-        LinearLayout r=new LinearLayout(a);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(0,dp(11),0,dp(11));
-        TextView key=text(label,14,WHITE,false);key.setPadding(0,0,dp(12),0);r.addView(key,new LinearLayout.LayoutParams(0,-2,1));TextView v=text(value,14,MUTE,false);v.setGravity(Gravity.END);v.setMaxWidth(dp(150));r.addView(v,new LinearLayout.LayoutParams(-2,-2));add(details,r,-2);
-        View line=new View(a);line.setBackgroundColor(0xff303030);details.addView(line,new LinearLayout.LayoutParams(-1,dp(1)));
+        TextView existing=fieldValues.get(label);if(existing!=null){if(!value.contentEquals(existing.getText()))existing.setText(value);return;}
+        if(details.getChildCount()>0){View line=new View(a);line.setBackgroundColor(0xff303030);details.addView(line,new LinearLayout.LayoutParams(-1,Math.max(1,dp(.65f))));}
+        LinearLayout r=new LinearLayout(a);r.setGravity(Gravity.CENTER_VERTICAL);r.setMinimumHeight(dp(48));r.setPadding(0,dp(10),0,dp(10));
+        TextView key=text(label,14,WHITE,false);key.setPaddingRelative(0,0,dp(12),0);r.addView(key,new LinearLayout.LayoutParams(0,-2,1));
+        TextView v=text(value,13,MUTE,false);v.setGravity(Gravity.END);v.setMaxWidth(dp(150));r.addView(v,new LinearLayout.LayoutParams(-2,-2));add(details,r,-2);fieldValues.put(label,v);
     }
     private String value(int v,String units){return v<0?"Unavailable":v+units;}
     private String temp(int v){return v<0?"Unavailable":String.format(Locale.US,"%.1f °C",v/10f);}
     private String status(int v){switch(v){case BatteryManager.BATTERY_HEALTH_GOOD:return "Good";case BatteryManager.BATTERY_HEALTH_OVERHEAT:return "Overheating";case BatteryManager.BATTERY_HEALTH_COLD:return "Cold";case BatteryManager.BATTERY_HEALTH_DEAD:return "Dead";case BatteryManager.BATTERY_HEALTH_OVER_VOLTAGE:return "Over voltage";case BatteryManager.BATTERY_HEALTH_UNSPECIFIED_FAILURE:return "Reported failure";default:return "Unavailable";}}
     private void render(){
-        HealthReader.Reading r=reading;int target=r.main();gauge.label=r.mainLabel();gauge.value=target;gauge.setContentDescription(gauge.label+" "+(target<0?"unavailable":target+" percent"));
-        if(animation!=null)animation.cancel();if(!MotionUi.enabled()){gauge.progress=target<0?0:target/100f;gauge.invalidate();}else{animation=ValueAnimator.ofFloat(gauge.progress,target<0?0:target/100f);animation.setDuration(quiet?180:Math.round(duration*1.55f));animation.setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f));animation.addUpdateListener(v->{gauge.progress=(float)v.getAnimatedValue();gauge.invalidate();});animation.start();}
-        String src=r.asoc>=0?r.asocSource:r.api>=0?"Android battery property 10":r.bsoh>=0?r.bsohSource:"No readable health source";
-        source.setText(src+(r.imported?" · manual snapshot":""));
-        boolean initial=details.getChildCount()==0;details.removeAllViews();field("Fuel gauge ASOC",value(r.asoc,"%"));field("Saved Samsung BSOH",value(r.bsoh,"%"));if(r.api>=0)field("Android SOH",value(r.api,"%"));field("Battery condition",status(r.status));field("Charge cycles",value(r.cycles,""));if(r.cycles>=0)field("Cycle count source",r.cycleSource);field("Design capacity",r.design<0?"Unavailable":r.design/1000+" mAh");field("Reported full capacity",r.full<0?"Unavailable":r.full/1000+" mAh");field("Temperature",temp(r.temp));field("Highest recorded temperature",temp(r.maxTemp));field("Voltage",r.mv<=0?"Unavailable":String.format(Locale.US,"%.2f V",r.mv/1000f));
+        HealthReader.Reading r=reading;int target=r.main();boolean changed=gauge.value!=target;gauge.label=r.mainLabel();gauge.value=target;gauge.setContentDescription(gauge.label+" "+(target<0?"unavailable":target+" percent"));
+        if(changed){if(animation!=null)animation.cancel();if(!MotionUi.enabled()){gauge.progress=target<0?0:target/100f;gauge.invalidate();}else{animation=ValueAnimator.ofFloat(gauge.progress,target<0?0:target/100f);animation.setDuration(quiet?180:Math.round(duration*1.55f));animation.setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f));animation.addUpdateListener(v->{gauge.progress=(float)v.getAnimatedValue();gauge.invalidate();});animation.start();}}else gauge.invalidate();
+        String updated=new java.text.SimpleDateFormat("HH:mm:ss",Locale.getDefault()).format(new java.util.Date(r.readTime));
+        source.setText(r.primarySource()+"\n"+(r.imported?"Manual snapshot · automatic refresh paused":"Checked "+updated+" · auto refresh "+(quiet?"60":"30")+"s"));
+        boolean initial=details.getChildCount()==0;
+        field("Fuel gauge ASOC",value(r.asoc,"%"));field("Saved Samsung ASOC",value(r.savedAsoc,"%"));field("Saved Samsung BSOH",value(r.bsoh,"%"));field("Android SOH",value(r.api,"%"));field("Battery condition",status(r.status));field("Charge cycles",value(r.cycles,""));field("Cycle source",r.cycles<0?"Unavailable":r.cycleSource);field("Design capacity",r.design<0?"Unavailable":r.design/1000+" mAh");field("Reported full capacity",r.full<0?"Unavailable":r.full/1000+" mAh");field("Temperature",temp(r.temp));field("Highest recorded temperature",temp(r.maxTemp));field("Voltage",r.mv<=0?"Unavailable":String.format(Locale.US,"%.2f V",r.mv/1000f));
         if(initial&&!closing)MotionUi.enter(details,Math.max(120,duration),quiet,0,0);
-        summary.setText((r.temp>=420?"Battery is warm. Let it cool before prolonged fast charging.\n\n":"")+"ASOC and BSOH are separate estimates. Unavailable readings are never filled with guessed percentages.");
+        summary.setText((r.temp>=420?"Battery is warm. Let it cool before prolonged fast charging.\n\n":"")+"ASOC, BSOH and Android SOH are separate firmware estimates. A full cycle is cumulative usage, not each charger connection. Firmware may update its counter only after a full equivalent cycle or later. Tap refresh to replace a manual snapshot.");
     }
     private void importReading(){
         EditText edit=new EditText(a);edit.setHint("fg_asoc=…\nmSavedBatteryBsoh: …");edit.setMinLines(4);edit.setGravity(Gravity.TOP);edit.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         AlertDialog importDialog=new AlertDialog.Builder(a).setTitle("Import diagnostic snapshot").setMessage("Paste the filtered Termux output. It will be labeled as a manual snapshot, not a live reading. No root permission is requested by this app.").setView(edit).setNegativeButton("Cancel",null).setPositiveButton("Import",(d,w)->{
             HealthReader.Reading parsed=new HealthReader.Reading();HealthReader.parseDump(parsed,edit.getText().toString(),"Imported diagnostic");
-            HealthReader.resolveCycles(parsed);if(parsed.asoc<0&&parsed.bsoh<0&&parsed.cycles<0){Toast.makeText(a,"No valid health or cycle field found",Toast.LENGTH_LONG).show();return;}
-            generation++;loading=false;if(reading==null)reading=new HealthReader.Reading();if(parsed.asoc>=0){reading.asoc=parsed.asoc;reading.asocSource=parsed.asocSource;}if(parsed.bsoh>=0){reading.bsoh=parsed.bsoh;reading.bsohSource=parsed.bsohSource;}if(parsed.maxTemp>=0)reading.maxTemp=parsed.maxTemp;if(parsed.cycles>=0){reading.cycles=parsed.cycles;reading.cycleSource="Manual snapshot · "+parsed.cycleSource;}reading.imported=true;render();
+            HealthReader.resolveCycles(parsed);if(parsed.asoc<0&&parsed.savedAsoc<0&&parsed.bsoh<0&&parsed.cycles<0){Toast.makeText(a,"No valid health or cycle field found",Toast.LENGTH_LONG).show();return;}
+            generation++;loading=false;refreshHandler.removeCallbacks(autoRead);if(reading==null)reading=new HealthReader.Reading();if(parsed.asoc>=0){reading.asoc=parsed.asoc;reading.asocSource=parsed.asocSource;}if(parsed.savedAsoc>=0){reading.savedAsoc=parsed.savedAsoc;reading.savedAsocSource=parsed.savedAsocSource;}if(parsed.bsoh>=0){reading.bsoh=parsed.bsoh;reading.bsohSource=parsed.bsohSource;}if(parsed.maxTemp>=0)reading.maxTemp=parsed.maxTemp;if(parsed.cycles>=0){reading.cycles=parsed.cycles;reading.cycleSource="Manual snapshot · "+parsed.cycleSource;}reading.imported=true;reading.readTime=System.currentTimeMillis();render();
         }).create();importDialog.show();MotionUi.panel(importDialog,Math.max(120,duration/2),quiet);
     }
     private final class Gauge extends View{
