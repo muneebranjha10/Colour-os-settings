@@ -1,0 +1,38 @@
+name: Build stage 1 APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - run: gradle :app:assembleDebug --no-daemon
+      - name: Verify APK and Xposed entry
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
+          unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
+          cp "$APK" ColourOS-Battery-Stage1.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GalaxyBattery-Stage1-APK
+          path: ColourOS-Battery-Stage1.apk
+      - name: Publish test APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=stage1-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-Stage1.apk --target "$GITHUB_SHA" --title "Stage 1 integration test" --notes "Experimental LSPosed hook test. Enable only Device Care scope. No Battery UI redesign yet." --prerelease
