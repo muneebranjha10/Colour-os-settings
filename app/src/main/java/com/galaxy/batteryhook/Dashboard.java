@@ -62,7 +62,7 @@ final class Dashboard extends LinearLayout {
     private boolean pluggedIn;
     private int currentPercent=-1;
     private LinearLayout tileRow;
-    private ValueAnimator slideMotion;
+    
     private SelectionLens lens;
     private ChargingLens chargingLens;private LinearLayout chargingRow,monitorSection;private boolean chargingDragging;
     private int glassStyle=1,animationStyle=1;private boolean showMonitor=true,showWatts=true,quietMode=false,haptics=true;
@@ -70,8 +70,7 @@ final class Dashboard extends LinearLayout {
     private ProtectionCard protectionCard;
     private boolean modeDragging;
     private final Handler handler=new Handler(Looper.getMainLooper());
-    private final Glass[] glass=new Glass[3];
-    private final ValueAnimator[] tileAnimations=new ValueAnimator[3];
+    
     private final NativeModes engine;
     private Switch superSwitch;
     private TextView superNote;
@@ -122,13 +121,13 @@ final class Dashboard extends LinearLayout {
         LinearLayout main=card();add(body,main,-2);
         LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode",engine.supportsLight()?"High performance\nmode":"Performance\nsettings"};
         for(int i=0;i<3;i++){
-            final int index=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER_HORIZONTAL);tile.setPadding(dp(3),dp(12),dp(3),dp(10));glass[i]=new Glass();tile.setBackground(glass[i]);
+            final int index=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER_HORIZONTAL);tile.setPadding(dp(3),dp(12),dp(3),dp(10));
             LayoutParams p=new LayoutParams(0,dp(122),1);if(i>0)p.leftMargin=dp(9);tiles.addView(tile,p);modes[i]=tile;
             Symbol symbol=new Symbol(i+1,WHITE);modeIcons[i]=symbol;tile.addView(symbol,new LayoutParams(dp(31),dp(30)));space(tile,5);
             TextView label=text(captions[i],12.5f,WHITE,false);label.setGravity(Gravity.CENTER);label.setMaxLines(3);label.setBreakStrategy(0);label.setHyphenationFrequency(0);label.setAutoSizeTextTypeUniformWithConfiguration(10,13,1,TypedValue.COMPLEX_UNIT_SP);modeLabels[i]=label;tile.addView(label,new LayoutParams(-1,0,1));
             TextView note=text("Estimating…",10.5f,MUTED,false);note.setGravity(Gravity.CENTER);note.setSingleLine(true);note.setAutoSizeTextTypeUniformWithConfiguration(9,11,1,TypedValue.COMPLEX_UNIT_SP);modeNotes[i]=note;add(tile,note,16);
             tap(tile,()->choose(index));
-        }FrameLayout tileHost=new ModeTouchHost();tileHost.addView(tiles,new FrameLayout.LayoutParams(-1,dp(122)));lens=new SelectionLens();tileHost.addView(lens,new FrameLayout.LayoutParams(-1,-1));lens.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);add(main,tileHost,122);space(main,12);
+        }FrameLayout tileHost=new ModeTouchHost();lens=new SelectionLens();tileHost.addView(lens,new FrameLayout.LayoutParams(-1,-1));tileHost.addView(tiles,new FrameLayout.LayoutParams(-1,dp(122)));lens.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);add(main,tileHost,122);space(main,12);
         TextView modeExplanation=text(engine.supportsLight()?"Balanced: Light · High performance: Standard":"Balanced: normal · Performance opens native settings",11,MUTED,false);modeExplanation.setGravity(Gravity.CENTER);add(main,modeExplanation,-2);space(main,12);
         LinearLayout superRow=row();LinearLayout superText=col();add(superText,text("Super power saving mode",18,WHITE,false),-2);space(superText,5);superNote=text("Uses Samsung Power saving",13,MUTED,false);add(superText,superNote,-2);superRow.addView(superText,new LayoutParams(0,-2,1));superSwitch=new Switch(uiContext);superSwitch.setShowText(false);superSwitch.setThumbTintList(ColorStateList.valueOf(WHITE));superSwitch.setTrackTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{0xff43af54,0xff555555}));superSwitch.setContentDescription("Super power saving mode (Samsung Power saving)");superRow.addView(superSwitch,new LayoutParams(-2,-2));add(main,superRow,-2);superSwitch.setOnCheckedChangeListener((b,checked)->{if(!syncingSwitch)choose(checked?1:engine.normalMode());});tap(superText,()->{if(!busy)choose(engine.isSaving()?engine.normalMode():1);});space(main,15);line(main);space(main,14);
         item(main,"Adaptive battery","Intelligently extends battery life based on your usage patterns and activity.",()->openNative("com.samsung.android.sm.battery.ui.setting.AdaptiveBatteryMenuActivity"));space(main,22);
@@ -161,7 +160,7 @@ final class Dashboard extends LinearLayout {
         nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");if(apps.getChildCount()>0)add(body,apps,-2);
         space(body,18);LinearLayout stockCard=card();item(stockCard,"Original Samsung Battery","All native battery features",original);add(body,stockCard,-2);
         space(body,27);TextView credit=text("Made by Muneeb",14,0xffb6b6b6,false);credit.setGravity(Gravity.CENTER);credit.setIncludeFontPadding(true);add(body,credit,-2);
-        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC2",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
+        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC3",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
         ready=true;refresh();
         body.setAlpha(0.65f);body.setTranslationY(dp(12));body.animate().alpha(1).translationY(0).setDuration(350).setInterpolator(new PathInterpolator(.2f,.8f,.2f,1f)).start();
     }
@@ -234,7 +233,7 @@ final class Dashboard extends LinearLayout {
     private int duration(int ms){return quietMode?Math.max(1,ms/2):animationStyle==0?Math.max(1,ms/2):animationStyle==2?Math.round(ms*1.45f):ms;}
     private String reminderLabel(){return chargeReminder==0?"Disabled":"Alert at "+chargeReminder+"% · page only";}
     private void chooseChargeReminder(){int[] values={0,70,80,85,90,95,100};String[] names={"Disabled","70%","80%","85%","90%","95%","100%"};int ix=0;for(int k=0;k<values.length;k++)if(values[k]==chargeReminder)ix=k;new AlertDialog.Builder(a).setTitle("Charge target reminder").setSingleChoiceItems(names,ix,(d,w)->{chargeReminder=values[w];reminderFired=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("charge_reminder",chargeReminder).apply();reminderNote.setText(reminderLabel());d.dismiss();refresh();}).setNegativeButton("Cancel",null).show();}
-    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC2\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nOptical shader: "+(android.os.Build.VERSION.SDK_INT>=33?"API supported; runtime fallback enabled":"Gradient fallback")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
+    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC3\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nOptical shader: "+(android.os.Build.VERSION.SDK_INT>=33?"Filled morph renderer (hardware Canvas)":"Filled morph renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
     private void customize(){
         LinearLayout p=col();p.setPadding(dp(20),dp(8),dp(20),dp(8));add(p,text("Liquid glass strength",15,WHITE,false),-2);
         android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Subtle","Optical glass","Deep glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
@@ -249,12 +248,12 @@ final class Dashboard extends LinearLayout {
     private void applyOptions(int g,int speed,boolean monitor,boolean watts,boolean quiet,boolean vibration){glassStyle=ReleaseRules.clampOption(g);animationStyle=ReleaseRules.clampOption(speed);showMonitor=monitor;showWatts=watts;quietMode=quiet;haptics=vibration;a.getSharedPreferences("colour_battery_options",0).edit().putInt("glass_style",glassStyle).putInt("animation_style",animationStyle).putBoolean("show_monitor",showMonitor).putBoolean("show_watts",showWatts).putBoolean("quiet_mode",quietMode).putBoolean("haptics",haptics).apply();if(lens!=null)lens.invalidate();if(chargingLens!=null)chargingLens.invalidate();if(monitorSection!=null)monitorSection.setVisibility(showMonitor?VISIBLE:GONE);refresh();}
     private void addChargingModes(LinearLayout body){
         LinearLayout c=card(),r=row();chargingRow=r;String[] titles={"Standard\ncharging","Fast & super fast\ncharging"};String[] desc={"Normal speed","Automatically negotiated"};
-        for(int i=0;i<2;i++){final int mode=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER);tile.setPadding(dp(6),dp(9),dp(6),dp(9));tile.setBackground(shape(TILE,22));chargingTiles[i]=tile;TextView z=text(i==0?"ϟ":"ϟϟ",23,WHITE,true);z.setGravity(Gravity.CENTER);add(tile,z,28);TextView title=text(titles[i],13,WHITE,false);title.setGravity(Gravity.CENTER);title.setMaxLines(3);chargingTitles[i]=title;add(tile,title,48);TextView sub=text(desc[i],10,MUTED,false);sub.setGravity(Gravity.CENTER);sub.setMaxLines(2);add(tile,sub,30);LayoutParams lp=new LayoutParams(0,dp(119),1);if(i>0)lp.leftMargin=dp(10);r.addView(tile,lp);tap(tile,()->selectChargingPolicy(mode));}
-        FrameLayout host=new ChargingTouchHost();host.addView(r,new FrameLayout.LayoutParams(-1,dp(124)));chargingLens=new ChargingLens();host.addView(chargingLens,new FrameLayout.LayoutParams(-1,-1));add(c,host,124);space(c,12);chargePolicyNote=text("Reading Samsung charging setting",12,MUTED,false);add(c,chargePolicyNote,-2);space(c,14);item(c,"More charging settings",null,()->openNative("com.samsung.android.sm.battery.ui.BatteryAdvancedMenuActivity"));add(body,c,-2);refreshChargingPolicy();
+        for(int i=0;i<2;i++){final int mode=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER);tile.setPadding(dp(6),dp(9),dp(6),dp(9));chargingTiles[i]=tile;TextView z=text(i==0?"ϟ":"ϟϟ",23,WHITE,true);z.setGravity(Gravity.CENTER);add(tile,z,28);TextView title=text(titles[i],13,WHITE,false);title.setGravity(Gravity.CENTER);title.setMaxLines(3);chargingTitles[i]=title;add(tile,title,48);TextView sub=text(desc[i],10,MUTED,false);sub.setGravity(Gravity.CENTER);sub.setMaxLines(2);add(tile,sub,30);LayoutParams lp=new LayoutParams(0,dp(119),1);if(i>0)lp.leftMargin=dp(10);r.addView(tile,lp);tap(tile,()->selectChargingPolicy(mode));}
+        FrameLayout host=new ChargingTouchHost();chargingLens=new ChargingLens();host.addView(chargingLens,new FrameLayout.LayoutParams(-1,-1));host.addView(r,new FrameLayout.LayoutParams(-1,dp(124)));add(c,host,124);space(c,12);chargePolicyNote=text("Reading Samsung charging setting",12,MUTED,false);add(c,chargePolicyNote,-2);space(c,14);item(c,"More charging settings",null,()->openNative("com.samsung.android.sm.battery.ui.BatteryAdvancedMenuActivity"));add(body,c,-2);refreshChargingPolicy();
     }
     private void refreshChargingPolicy(){
         if(chargingTiles[0]==null)return;int state=chargingPolicy.read();
-        for(int i=0;i<2;i++){boolean active=state==i;chargingTiles[i].setSelected(active);chargingTitles[i].setTextColor(active?GREEN:WHITE);}if(chargingLens!=null&&!chargingDragging)chargingLens.settle(state);
+        for(int i=0;i<2;i++){boolean active=state==i;chargingTiles[i].setSelected(active);chargingTitles[i].setTextColor(WHITE);}if(chargingLens!=null&&!chargingDragging)chargingLens.settle(state);
         if(chargePolicyNote!=null)chargePolicyNote.setText(state<0||!chargingPolicy.canApply()?"Open native settings to configure charging":state==0?"Fast charging disabled":"Fast / Super fast enabled · charger, battery and temperature determine actual speed");
     }
     private void selectChargingPolicy(int mode){
@@ -272,30 +271,27 @@ final class Dashboard extends LinearLayout {
     @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus){ensureBars();handler.removeCallbacks(tick);handler.post(tick);handler.removeCallbacks(powerTick);if(pluggedIn)handler.post(powerTick);}else{handler.removeCallbacks(powerTick);handler.removeCallbacks(tick);}}
     private void applySafeInsets(WindowInsets insets){WindowBars.pad(a.getWindow(),this,insets);}
     private void showMode(int which){
-        int old=selected;boolean changed=which!=selected;selected=which;
-        if(changed&&lens!=null&&!modeDragging){lens.move(old,which); }
+        int old=selected;selected=which;
+        if(lens!=null&&!modeDragging&&!busy)lens.settle(which);
         boolean saving=engine.isSaving();
         syncingSwitch=true;superSwitch.setChecked(saving);syncingSwitch=false;
         for(int j=0;j<3;j++){
-            final int k=j;boolean chosen=j==which;
-            modes[j].setSelected(chosen);
-            if(changed){
-                if(tileAnimations[j]!=null)tileAnimations[j].cancel();
-                ValueAnimator anim=ValueAnimator.ofFloat(glass[j].amount,chosen?1f:0f);anim.setDuration(duration(420));anim.setInterpolator(new PathInterpolator(.18f,.72f,.18f,1f));anim.addUpdateListener(v->{float f=(float)v.getAnimatedValue();glass[k].amount=f;modeLabels[k].setTextColor(blend(WHITE,GREEN,f));modeIcons[k].color=blend(WHITE,GREEN,f);modeIcons[k].invalidate();modeNotes[k].setTextColor(blend(MUTED,GREEN,f));});tileAnimations[j]=anim;anim.start();
-                
-            }
+            boolean chosen=j==which;modes[j].setSelected(chosen);
+            if(old!=which){modeLabels[j].setTextColor(WHITE);modeIcons[j].color=WHITE;modeIcons[j].invalidate();modeNotes[j].setTextColor(chosen?0xffc3fbd2:MUTED);}
         }
     }
     private void choose(int mode){
         if(busy||!isAttachedToWindow())return;
-        if(mode==2&&!engine.supportsLight()){if(lens!=null)lens.move(mode,engine.activeMode());openNative("com.samsung.android.sm.battery.ui.setting.PerformanceOptimizationActivity");return;}
-        busy=true;superSwitch.setEnabled(false);showMode(engine.activeMode());
+        if(mode==2&&!engine.supportsLight()){if(lens!=null)lens.settle(engine.activeMode());openNative("com.samsung.android.sm.battery.ui.setting.PerformanceOptimizationActivity");return;}
+        if(mode==engine.activeMode()){if(lens!=null)lens.settle(mode);showMode(mode);return;}
+        busy=true;superSwitch.setEnabled(false);
+        if(lens!=null)lens.settle(mode);
         for(LinearLayout tile:modes)tile.setEnabled(false);
         engine.apply(mode,()->{
             if(!isAttachedToWindow())return;
-            busy=false;superSwitch.setEnabled(true);for(LinearLayout tile:modes)tile.setEnabled(true);refresh();
-            if(lens!=null)lens.move(mode,engine.activeMode());
-            if(engine.activeMode()!=mode){Toast.makeText(a,"Samsung did not confirm the requested mode.",Toast.LENGTH_SHORT).show();BatteryHook.log("mode not confirmed "+mode);}
+            busy=false;superSwitch.setEnabled(true);for(LinearLayout tile:modes)tile.setEnabled(true);
+            int confirmed=engine.activeMode();if(lens!=null)lens.settle(confirmed);refresh();
+            if(confirmed!=mode){Toast.makeText(a,"Samsung did not confirm the requested mode.",Toast.LENGTH_SHORT).show();BatteryHook.log("mode not confirmed "+mode);}
         });
     }
     private void updateEstimates(){
@@ -309,15 +305,8 @@ final class Dashboard extends LinearLayout {
         });
     }
     @Override protected void onAttachedToWindow(){super.onAttachedToWindow();try{IntentFilter filter=new IntentFilter(Intent.ACTION_BATTERY_CHANGED);filter.addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED);if(android.os.Build.VERSION.SDK_INT>=33)a.registerReceiver(receiver,filter,Context.RECEIVER_EXPORTED);else a.registerReceiver(receiver,filter);registered=true;}catch(Throwable t){BatteryHook.log("receiver: "+t);}try{a.getContentResolver().registerContentObserver(Settings.Global.getUriFor("low_power"),false,modeObserver);observing=true;a.getContentResolver().registerContentObserver(Settings.Global.getUriFor("sem_low_heat_mode"),false,modeObserver);}catch(Throwable t){BatteryHook.log("observer: "+t);}handler.removeCallbacks(tick);if(hasWindowFocus())handler.post(tick);post(()->{ensureBars();applySafeInsets(getRootWindowInsets());requestApplyInsets();});}
-    @Override protected void onDetachedFromWindow(){handler.removeCallbacks(tick);handler.removeCallbacks(powerTick);if(observing){try{a.getContentResolver().unregisterContentObserver(modeObserver);}catch(Throwable ignored){}observing=false;}if(registered){try{a.unregisterReceiver(receiver);}catch(Throwable ignored){}registered=false;}for(ValueAnimator an:tileAnimations)if(an!=null)an.cancel();if(slideMotion!=null){slideMotion.removeAllListeners();slideMotion.cancel();}if(lens!=null)lens.release();if(chargingLens!=null)chargingLens.stop();if(protectionCard!=null)protectionCard.dispose();bar.stop();engine.close();super.onDetachedFromWindow();}
+    @Override protected void onDetachedFromWindow(){handler.removeCallbacks(tick);handler.removeCallbacks(powerTick);if(observing){try{a.getContentResolver().unregisterContentObserver(modeObserver);}catch(Throwable ignored){}observing=false;}if(registered){try{a.unregisterReceiver(receiver);}catch(Throwable ignored){}registered=false;}if(lens!=null)lens.stop();if(chargingLens!=null)chargingLens.stop();if(protectionCard!=null)protectionCard.dispose();bar.stop();engine.close();super.onDetachedFromWindow();}
     private static int blend(int a,int b,float f){return android.graphics.Color.rgb(Math.round(Color.red(a)+(Color.red(b)-Color.red(a))*f),Math.round(Color.green(a)+(Color.green(b)-Color.green(a))*f),Math.round(Color.blue(a)+(Color.blue(b)-Color.blue(a))*f));}
-    private final class Glass extends Drawable {
-        private final Paint p=new Paint(3);private final RectF box=new RectF();float amount;
-        @Override public void draw(Canvas c){box.set(getBounds());p.setColor(TILE);c.drawRoundRect(box,dp(22),dp(22),p);}
-        @Override public void setAlpha(int a){} @Override public void setColorFilter(ColorFilter f){} @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
-    }
-    // A single persistent lens moves from the actual previous card to the confirmed next card.
-    // No duplicate selection backgrounds or fake flash on refresh.
     private final class ModeTouchHost extends FrameLayout {
         private float startX,startY,startSlot;
         private boolean eligible,dragging;
@@ -346,8 +335,7 @@ final class Dashboard extends LinearLayout {
                     boolean cancel=e.getActionMasked()==android.view.MotionEvent.ACTION_CANCEL;
                     int next=cancel?engine.activeMode():Math.max(0,Math.min(2,Math.round(lens.slot)));
                     dragging=false;modeDragging=false;eligible=false;getParent().requestDisallowInterceptTouchEvent(false);
-                    lens.move(selected,next);
-                    if(!cancel&&next!=engine.activeMode()){if(haptics)performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);choose(next);}else{lens.move(next,engine.activeMode());}
+                    if(!cancel&&next!=engine.activeMode()){if(haptics)performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);choose(next);}else{lens.settle(engine.activeMode());}
                     return true;
                 default:return true;
             }
@@ -360,7 +348,7 @@ final class Dashboard extends LinearLayout {
         @Override public boolean onInterceptTouchEvent(android.view.MotionEvent e){
             switch(e.getActionMasked()){
                 case 0:x=e.getX();y=e.getY();start=chargingLens==null?-1:chargingLens.slot;eligible=start>=0&&step()>0;drag=false;return false;
-                case 2:float dx=e.getX()-x,dy=e.getY()-y;if(Math.abs(dy)>slop&&Math.abs(dy)>Math.abs(dx)){eligible=false;return false;}if(eligible&&Math.abs(dx)>slop&&Math.abs(dx)>Math.abs(dy)*1.2f){drag=true;chargingDragging=true;getParent().requestDisallowInterceptTouchEvent(true);chargingLens.stop();chargingLens.preview(start+dx/step());return true;}return false;
+                case 2:float dx=e.getX()-x,dy=e.getY()-y;if(Math.abs(dy)>slop&&Math.abs(dy)>Math.abs(dx)){eligible=false;return false;}if(eligible&&Math.abs(dx)>slop&&Math.abs(dx)>Math.abs(dy)*1.2f){drag=true;chargingDragging=true;getParent().requestDisallowInterceptTouchEvent(true);chargingLens.beginDrag();chargingLens.preview(start+dx/step());return true;}return false;
                 default:return false;
             }
         }
@@ -370,64 +358,66 @@ final class Dashboard extends LinearLayout {
             default:return true;
         }}
     }
-    private final class ChargingLens extends View {
-        final Paint p=new Paint(3);final RectF box=new RectF(),inner=new RectF();float slot=-1,target=-1;ValueAnimator anim;
-        ChargingLens(){super(a);setClickable(false);setFocusable(false);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
+    private final class ChargingLens extends MorphLens {ChargingLens(){super(chargingTiles);}}
+    private final class SelectionLens extends MorphLens {SelectionLens(){super(modes);}void dragTo(float value){preview(value);}}
+    // One draw-only layer under the real labels; no snapshots, per-frame shader allocations,
+    // blur, or runtime shader compilation. Both selectors share the same geometry and clock.
+    private class MorphLens extends View {
+        final LinearLayout[] tiles;final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);final Path liquid=new Path();final RectF cardRect=new RectF();
+        float slot=-1,lead=-1,tail=-1,target=-1;ValueAnimator anim;boolean dragging;
+        Shader body,rim,sheen;int cachedStyle=-1,cachedHeight=-1;boolean cachedQuiet;
+        MorphLens(LinearLayout[] tiles){super(a);this.tiles=tiles;setClickable(false);setFocusable(false);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
         void stop(){if(anim!=null){anim.removeAllListeners();anim.cancel();anim=null;}target=-1;}
-        void preview(float v){slot=Math.max(0,Math.min(1,v));invalidate();}
-        void settle(int state){if(state<0){stop();slot=-1;invalidate();return;}if(target==state&&anim!=null&&anim.isRunning())return;if(Math.abs(slot-state)<.001f){slot=state;invalidate();return;}stop();target=state;if(slot<0){slot=state;invalidate();return;}anim=ValueAnimator.ofFloat(slot,state);anim.setDuration(duration(330));anim.setInterpolator(new PathInterpolator(.19f,.78f,.24f,1f));anim.addUpdateListener(v->{slot=(float)v.getAnimatedValue();invalidate();});anim.start();}
-        @Override protected void onDraw(Canvas c){if(slot<0||chargingRow==null||chargingTiles[0].getWidth()==0)return;float step=chargingTiles[1].getLeft()-chargingTiles[0].getLeft(),x=chargingTiles[0].getLeft()+slot*step,w=chargingTiles[0].getWidth();float stretch=dp(glassStyle==2?8:4)*(float)Math.sin(Math.PI*slot),r=dp(22);box.set(x+dp(1)-stretch,dp(1)+stretch*.2f,x+w-dp(1)+stretch,getHeight()-dp(1)-stretch*.2f);
-            p.setStyle(Paint.Style.FILL);p.setShader(new LinearGradient(box.left,box.top,box.right,box.bottom,new int[]{glassStyle==0?0x25215c29:0x64215c29,0x22102914,0x50265b2b},null,Shader.TileMode.CLAMP));c.drawRoundRect(box,r,r,p);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(glassStyle==2?3:1.2f));p.setShader(new LinearGradient(box.left,box.top,box.right,box.bottom,new int[]{0xd090ef89,0x552c9c39,0xc07ee685},null,Shader.TileMode.CLAMP));c.drawRoundRect(box,r,r,p);inner.set(box);inner.inset(dp(3),dp(3));p.setStrokeWidth(dp(.8f));p.setShader(new LinearGradient(inner.left,inner.top,inner.right,inner.bottom,0x709aff96,0x139aff96,Shader.TileMode.CLAMP));c.drawRoundRect(inner,r-dp(3),r-dp(3),p);p.setShader(null);p.setStyle(Paint.Style.FILL);
+        void beginDrag(){stop();dragging=true;}
+        private float clamp(float n){return Math.max(0,Math.min(tiles.length-1,n));}
+        void preview(float value){
+            float next=clamp(value),old=slot;slot=next;
+            if(old<0){lead=tail=next;}else{lead=next;tail=LiquidMotion.dragTail(tail,next);}
+            postInvalidateOnAnimation();
         }
-    }
-    private final class SelectionLens extends View {
-        private final Paint p=new Paint(3);private final RectF rect=new RectF(),inner=new RectF();private final Path clip=new Path();
-        private float slot=-1,progress=1,travel=0;private boolean moving,dragging;
-        private android.graphics.Bitmap snapshot;private android.graphics.RuntimeShader optical;private boolean shaderFailed;
-        private static final String OPTICS=
-            "uniform shader scene; uniform float4 box; uniform float radius; uniform float depth;"+
-            "float sd(float2 p){float2 q=abs(p-box.xy)-box.zw+radius;return length(max(q,float2(0.0)))+min(max(q.x,q.y),0.0)-radius;}"+
-            "half4 main(float2 p){float d=sd(p);float edge=exp(-abs(d+depth*0.48)/(depth*0.38));"+
-            "float2 n=normalize(float2(sd(p+float2(1.0,0.0))-sd(p-float2(1.0,0.0)),sd(p+float2(0.0,1.0))-sd(p-float2(0.0,1.0)))+float2(0.0001));"+
-            "half3 src=scene.eval(p-n*(depth*0.95*edge)).rgb;float spec=pow(max(0.0,dot(n,normalize(float2(-0.8,-1.0)))),5.0);"+
-            "float lower=pow(max(0.0,dot(n,normalize(float2(0.45,1.0)))),4.0);"+
-            "half3 col=src*half3(0.76,1.02,0.76)+half3(0.035,0.15,0.045)+half3(0.24,0.58,0.22)*half(edge*(spec*0.65+lower*0.42));"+
-            "half a=half(clamp(edge*0.85,0.0,0.88));return half4(clamp(col,half3(0.0),half3(1.0))*a,a);}";
-        SelectionLens(){super(a);setClickable(false);setFocusable(false);}
-        void release(){snapshot=null;optical=null;p.setShader(null);}
-        private void capture(){
-            if(quietMode||glassStyle==0||shaderFailed||android.os.Build.VERSION.SDK_INT<33||tileRow==null||tileRow.getWidth()<=0||tileRow.getHeight()<=0)return;
-            try{snapshot=android.graphics.Bitmap.createBitmap(tileRow.getWidth(),tileRow.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);tileRow.draw(new Canvas(snapshot));optical=new android.graphics.RuntimeShader(OPTICS);android.graphics.BitmapShader bitmapShader=new android.graphics.BitmapShader(snapshot,Shader.TileMode.CLAMP,Shader.TileMode.CLAMP);bitmapShader.setFilterMode(android.graphics.BitmapShader.FILTER_MODE_LINEAR);optical.setInputShader("scene",bitmapShader);BatteryHook.log("optical lens shader ready");}catch(Throwable e){shaderFailed=true;release();BatteryHook.log("glass GPU fallback: "+e);}
-        }
-        void beginDrag(){if(slideMotion!=null){slideMotion.removeAllListeners();slideMotion.cancel();}release();moving=true;dragging=true;progress=.5f;capture();}
-        void dragTo(float target){float next=Math.max(0,Math.min(2,target));travel=next-slot;slot=next;invalidate();}
-        void move(int from,int to){
+        void settle(int next){
             dragging=false;
-            float initial=slot<0?from:slot;if(slideMotion!=null){slideMotion.removeAllListeners();slideMotion.cancel();}release();
-            if(to<0){slot=-1;moving=false;invalidate();return;}
-            if(initial<0||Math.abs(initial-to)<.001f){slot=to;moving=false;progress=1;invalidate();return;}
-            moving=true;progress=0;travel=to-initial;capture();
-            final float start=initial;
-            slideMotion=ValueAnimator.ofFloat(0f,1f);slideMotion.setDuration(duration(360));slideMotion.setInterpolator(new PathInterpolator(.19f,.78f,.24f,1f));
-            slideMotion.addUpdateListener(v->{progress=(float)v.getAnimatedValue();slot=start+travel*progress;invalidate();});
-            slideMotion.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator animation){moving=false;slot=to;progress=1;release();invalidate();}});
-            slideMotion.start();
+            if(next<0||next>=tiles.length){stop();slot=lead=tail=-1;invalidate();return;}
+            if(target==next&&anim!=null&&anim.isRunning())return;
+            if(slot<0){stop();slot=lead=tail=next;target=next;invalidate();return;}
+            if(Math.abs(lead-next)<.001f&&Math.abs(tail-next)<.001f){stop();slot=lead=tail=next;target=next;invalidate();return;}
+            stop();target=next;final float firstLead=lead,firstTail=tail,firstSlot=slot;
+            anim=ValueAnimator.ofFloat(0f,1f);anim.setInterpolator(new android.view.animation.LinearInterpolator());
+            anim.setDuration(duration(Math.abs(next-firstSlot)>1.1f?520:420));
+            anim.addUpdateListener(v->{float f=(float)v.getAnimatedValue();lead=LiquidMotion.mix(firstLead,next,LiquidMotion.leading(f));tail=LiquidMotion.mix(firstTail,next,LiquidMotion.trailing(f));slot=LiquidMotion.mix(firstSlot,next,LiquidMotion.leading(f));postInvalidateOnAnimation();});
+            anim.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){lead=tail=slot=next;invalidate();}});anim.start();
         }
-        @Override protected void onSizeChanged(int w,int h,int ow,int oh){super.onSizeChanged(w,h,ow,oh);invalidate();}
+        @Override protected void onSizeChanged(int w,int h,int oldW,int oldH){cachedHeight=-1;invalidate();}
+        private void colors(int height){
+            if(cachedHeight==height&&cachedStyle==glassStyle&&cachedQuiet==quietMode)return;
+            cachedHeight=height;cachedStyle=glassStyle;cachedQuiet=quietMode;
+            int[] palette=glassStyle==0?new int[]{0xff345f3e,0xff23412c,0xff32573c}:glassStyle==2?new int[]{0xff5aa866,0xff245e35,0xff173c25,0xff3c8550}:new int[]{0xff468952,0xff285b36,0xff21452c,0xff367444};
+            body=new LinearGradient(0,0,0,height,palette,null,Shader.TileMode.CLAMP);
+            rim=new LinearGradient(0,0,0,height,new int[]{0xffb2f8ba,0xff5d9a65,0xff3c7349,0xff87d997},null,Shader.TileMode.CLAMP);
+            sheen=new LinearGradient(0,0,0,height,new int[]{0x52d7ffde,0x10c6ffce,0x00000000,0x24a1f8b3},new float[]{0,.23f,.66f,1},Shader.TileMode.CLAMP);
+        }
+        private float xAt(float v){int i=Math.min(tiles.length-2,Math.max(0,(int)Math.floor(v)));return LiquidMotion.mix(tiles[i].getLeft(),tiles[i+1].getLeft(),v-i);}
         @Override protected void onDraw(Canvas c){
-            if(slot<0||tileRow==null||modes[0].getWidth()==0)return;
-            float wave=dragging?.65f:moving?(float)Math.sin(Math.PI*progress):0,w=modes[0].getWidth(),step=modes[1].getLeft()-modes[0].getLeft(),x=modes[0].getLeft()+slot*step;
-            float stretch=dp(glassStyle==2?13:glassStyle==0?4:8)*wave,shift=dp(4)*wave*Math.signum(travel);rect.set(x+dp(1)-stretch+shift,dp(1)+dp(2)*wave,x+w-dp(1)+stretch+shift,getHeight()-dp(1)-dp(2)*wave);float r=dp(22);
-            p.setStyle(Paint.Style.FILL);p.setShader(new LinearGradient(rect.left,rect.top,rect.right,rect.bottom,new int[]{0x64215c29,0x42102914,0x69265b2b},new float[]{0,.50f,1},Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
-            if(moving&&optical!=null&&c.isHardwareAccelerated()){
-                try{optical.setFloatUniform("box",rect.centerX(),rect.centerY(),rect.width()/2,rect.height()/2);optical.setFloatUniform("radius",r);optical.setFloatUniform("depth",dp(glassStyle==2?17:10));p.setShader(optical);c.drawRoundRect(rect,r,r,p);p.setShader(null);}catch(Throwable e){shaderFailed=true;release();BatteryHook.log("glass draw fallback: "+e);}
-            }else if(moving&&wave>0){
-                p.setShader(new RadialGradient(rect.centerX(),rect.bottom,Math.max(1,rect.width()),new int[]{0x2424cf37,0x0024cf37},null,Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
-            }
-            // Beveled edge: wide low-intensity body, hairline rim, and interior specular edge.
-            p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(glassStyle==2?4:glassStyle==0?1:2.5f));p.setColor(0x4024c939);inner.set(rect);inner.inset(dp(1.5f),dp(1.5f));c.drawRoundRect(inner,r-dp(1.5f),r-dp(1.5f),p);
-            p.setStrokeWidth(dp(1.15f));p.setShader(new LinearGradient(rect.left,rect.top,rect.right,rect.bottom,new int[]{0xff86ef79,0x9e2dc333,0x891d7726,0xef94e68b},new float[]{0,.27f,.68f,1},Shader.TileMode.CLAMP));c.drawRoundRect(rect,r,r,p);p.setShader(null);
-            inner.set(rect);inner.inset(dp(3),dp(3));p.setStrokeWidth(dp(1));p.setShader(new LinearGradient(inner.left,inner.top,inner.right,inner.bottom,new int[]{0x969aff96,0x00146220,0x0086ff7e,0x7893ff83},new float[]{0,.36f,.68f,1},Shader.TileMode.CLAMP));c.drawRoundRect(inner,r-dp(3),r-dp(3),p);p.setShader(null);p.setStyle(Paint.Style.FILL);
+            if(tiles[0]==null||tiles[0].getWidth()<=0)return;
+            paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(TILE);
+            for(LinearLayout tile:tiles){cardRect.set(tile.getLeft(),tile.getTop(),tile.getRight(),tile.getBottom());c.drawRoundRect(cardRect,dp(22),dp(22),paint);}
+            if(slot<0)return;
+            int width=tiles[0].getWidth(),height=tiles[0].getHeight();if(height<=0)return;colors(height);
+            float x1=xAt(lead),x2=xAt(tail),left=Math.min(x1,x2)+dp(1),right=Math.max(x1,x2)+width-dp(1);
+            float top=tiles[0].getTop()+dp(1),bottom=tiles[0].getBottom()-dp(1),span=right-left;
+            float r=Math.min(dp(22),(bottom-top)*.25f),neck=LiquidMotion.neck(Math.abs(lead-tail),bottom-top,quietMode||glassStyle==0?.08f:glassStyle==2?.27f:.19f);
+            float mid=(left+right)*.5f,control=span*.23f;
+            liquid.reset();liquid.moveTo(left+r,top);
+            liquid.cubicTo(left+r+control,top,mid-control*.5f,top+neck,mid,top+neck);
+            liquid.cubicTo(mid+control*.5f,top+neck,right-r-control,top,right-r,top);
+            liquid.quadTo(right,top,right,top+r);liquid.lineTo(right,bottom-r);liquid.quadTo(right,bottom,right-r,bottom);
+            liquid.cubicTo(right-r-control,bottom,mid+control*.5f,bottom-neck,mid,bottom-neck);
+            liquid.cubicTo(mid-control*.5f,bottom-neck,left+r+control,bottom,left+r,bottom);
+            liquid.quadTo(left,bottom,left,bottom-r);liquid.lineTo(left,top+r);liquid.quadTo(left,top,left+r,top);liquid.close();
+            paint.setShader(body);c.drawPath(liquid,paint);
+            if(!quietMode){paint.setShader(sheen);c.drawPath(liquid,paint);}
+            paint.setStyle(Paint.Style.STROKE);paint.setStrokeJoin(Paint.Join.ROUND);paint.setStrokeWidth(dp(glassStyle==2?1.6f:1.1f));paint.setShader(rim);c.drawPath(liquid,paint);
+            paint.setStyle(Paint.Style.FILL);paint.setShader(null);
         }
     }
     private final class Gauge extends View {

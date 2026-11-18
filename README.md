@@ -21,9 +21,9 @@ ColourOS Battery replaces the appearance of the supported native Battery activit
 
 | Dashboard | Custom studio |
 | --- | --- |
-| Live battery percentage and charging estimates | Three green glass strengths |
+| Live battery percentage and charging estimates | Three filled liquid-glass strengths |
 | Battery-side charging power and recent graph | Adjustable animation speed |
-| ASOC, BSOH and cycle count with source labels | Draggable performance and charging selectors |
+| ASOC, BSOH and cycle count with source labels | Draggable, filled morphing power and charging selectors |
 | Inline battery protection on supported firmware | Optional haptics and wattage display |
 | Native charging and power settings | Low Power UI and monitor visibility |
 | Temperature and charge-target alerts (page only) | Compatibility report |
@@ -32,6 +32,8 @@ Battery-side wattage is not wall or charger output. Health values are firmware e
 
 ## Compatibility
 
+**All Samsung Galaxy devices are targeted for support — compatibility is still in testing.** Root and LSPosed are required. This is not a guarantee that every model or firmware works yet.
+
 | Environment | Status |
 | --- | --- |
 | Galaxy S23 SM-S911B, One UI 9 | Original development target; earlier builds tested by the author |
@@ -39,7 +41,7 @@ Battery-side wattage is not wall or charger output. Health values are firmware e
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The branded v1.1 RC2 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC3 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -65,7 +67,7 @@ The previously reported Balanced-mode issue has not been investigated further an
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs ten automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs fourteen automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 

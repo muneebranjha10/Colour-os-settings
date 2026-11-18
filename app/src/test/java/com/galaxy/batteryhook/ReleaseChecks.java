@@ -12,4 +12,8 @@ public class ReleaseChecks {
     @Test public void knownProtectionRangeOnly(){for(int n=80;n<=95;n+=5)assertTrue(ReleaseRules.supportsProtection(36,1,n));assertFalse(ReleaseRules.supportsProtection(35,1,80));assertFalse(ReleaseRules.supportsProtection(37,1,100));assertFalse(ReleaseRules.supportsProtection(37,4,90));}
     @Test public void unknownModelsNeverCallObfuscatedHelpers(){assertTrue(ReleaseRules.testedHelperFamily("SM-S911B",37));assertFalse(ReleaseRules.testedHelperFamily("SM-S928B",37));assertFalse(ReleaseRules.testedHelperFamily("SM-S911B",35));}
     @Test public void customSettingsBounds(){assertEquals(0,ReleaseRules.clampOption(-7));assertEquals(2,ReleaseRules.clampOption(100));assertEquals(1,ReleaseRules.clampOption(1));}
+    @Test public void morphEndpointsAreExact(){assertEquals(0f,LiquidMotion.leading(0),0);assertEquals(0f,LiquidMotion.trailing(0),0);assertEquals(1f,LiquidMotion.leading(1),0);assertEquals(1f,LiquidMotion.trailing(1),0);}
+    @Test public void leadingEdgePullsBeforeTrailingEdge(){for(int i=0;i<=100;i++){float p=i/100f;assertTrue(LiquidMotion.leading(p)>=LiquidMotion.trailing(p));}assertTrue(LiquidMotion.leading(.5f)-LiquidMotion.trailing(.5f)>.2f);}
+    @Test public void morphIsMonotonicBothDirections(){float last=0;for(int i=0;i<=100;i++){float a=LiquidMotion.leading(i/100f);assertTrue(a>=last);assertEquals(2-2*a,LiquidMotion.mix(2,0,a),.00001);last=a;}}
+    @Test public void neckAndDragAreBounded(){assertEquals(0f,LiquidMotion.neck(0,100,.25f),0);assertTrue(LiquidMotion.neck(3,100,.25f)<=25);assertTrue(LiquidMotion.dragTail(0,1)>0&&LiquidMotion.dragTail(0,1)<1);}
 }
