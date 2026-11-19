@@ -24,15 +24,15 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Require all thirty-nine regression checks
+      - name: Require all forty-four regression checks
         run: |
           python3 - <<'PY'
           import glob,xml.etree.ElementTree as E
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           suites=[E.parse(f).getroot() for f in files]
-          assert sum(int(s.get('tests',0)) for s in suites)>=39
+          assert sum(int(s.get('tests',0)) for s in suites)>=44
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
-          print('Thirty-nine or more regression checks passed')
+          print('Forty-four or more regression checks passed')
           PY
       - name: Verify glass touch wiring
         run: |
@@ -127,23 +127,40 @@ jobs:
           assert 'if(!consent.accept())' in b and 'try{open.run();}' in b
           print('Beta notice persistence and dashboard gating verified')
           PY
+      - name: Verify battery visual lifecycle
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/java/com/galaxy/batteryhook')
+          d=(p/'Dashboard.java').read_text()
+          peek=(p/'BatteryPeek.java').read_text()
+          assert 'bindTap(bar,this::toggleBatteryPeek)' in d
+          assert 'batteryPeek.update(r,bar.statusColor(),engine.isSaving())' in d
+          assert 'if(wave)postInvalidateOnAnimation()' in d
+          assert 'getGlobalVisibleRect(visibleRect)' in d
+          assert 'healthScreen==null&&!leaving' in d
+          assert '.putBoolean("charging_wave",chargingWave)' in d
+          assert '.putBoolean("dynamic_accents",dynamicAccents)' in d
+          assert 'void stop(){cancel();finish();}' in peek
+          print('Battery expansion, preferences and charging-wave guards verified')
+          PY
       - name: Verify APK and Xposed entry
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-Public-Beta-1.apk
+          cp "$APK" ColourOS-Battery-Public-Beta-2.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-Public-Beta-1.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-Public-Beta-2.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-Public-Beta-1-APK
+          name: GalaxyBattery-Public-Beta-2-APK
           path: |
-            ColourOS-Battery-Public-Beta-1.apk
+            ColourOS-Battery-Public-Beta-2.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=public-beta1-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-Public-Beta-1.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 Public Beta 1 | Made by Muneeb" --notes-file docs/RELEASE-PUBLIC-BETA-1.md --prerelease
+          TAG=public-beta2-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-Public-Beta-2.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 Public Beta 2 | Made by Muneeb" --notes-file docs/RELEASE-PUBLIC-BETA-2.md --prerelease

@@ -41,7 +41,7 @@ final class BetaWelcome extends LinearLayout {
                 p.setColor(0xff82e493);p.setStrokeWidth(3);r.set(21,32,71,63);c.drawRoundRect(r,7,7,p);p.setStyle(Paint.Style.FILL);c.drawRoundRect(75,41,79,54,2,2,p);
                 p.setColor(0xff43ce57);c.drawRoundRect(26,37,55,58,3,3,p);c.restore();}
         };content.addView(icon,new LayoutParams(dp(96),dp(96)));gap(content,22);
-        TextView badge=text("PUBLIC BETA  ·  1",12,0xff9be7a4,true);badge.setBackground(shape(0xff1c3020,18));badge.setPadding(dp(14),dp(7),dp(14),dp(7));content.addView(badge,new LayoutParams(-2,-2));gap(content,15);
+        TextView badge=text("PUBLIC BETA  ·  2",12,0xff9be7a4,true);badge.setBackground(shape(0xff1c3020,18));badge.setPadding(dp(14),dp(7),dp(14),dp(7));content.addView(badge,new LayoutParams(-2,-2));gap(content,15);
         TextView title=text("Welcome to\nColourOS Battery",30,0xfff2f2f2,true);add(content,title);gap(content,12);
         TextView intro=text("You're using an experimental beta version.",16,0xffd2d2d2,false);add(content,intro);gap(content,22);
         LinearLayout warning=new LinearLayout(a);warning.setOrientation(VERTICAL);warning.setPadding(dp(18),dp(16),dp(18),dp(16));warning.setBackground(shape(0xff1b1b1b,22));

@@ -72,7 +72,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 Public Beta 1 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 Public Beta 2 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -98,7 +98,7 @@ The previously reported Balanced-mode issue has not been investigated further an
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs thirty-nine automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs forty-four automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 
@@ -112,3 +112,8 @@ GitHub Actions runs thirty-nine automated regression checks, builds the APK and 
 
 
 Public beta testers: report problems via [GitHub Issues](https://github.com/muneebranjha10/Colour-os-settings/issues). The beta notice is not displayed in RC10.
+
+
+### Public Beta 2 — Liquid Battery
+
+Tap the battery bar to expand a read-only live battery detail card. Status accents: green normal, blue active charging, amber power saving, red at or below 15 percent (charging takes priority). Optional wave runs only while visibly charging; both effects can be disabled in Customize appearance. Beta 1 acknowledgment is reused. No new root operations, background services or battery controls.
