@@ -5,6 +5,8 @@ final class ReleaseRules {
     static int samsungProfileForStandard(){return 0;}
     static int samsungProfileForLight(){return 1;}
     static int modeForSamsungProfile(int profile){return profile==1?0:profile==0?2:-1;}
+    // Both mode selectors must move on touch, before backend profile confirmation.
+    static int profileSlotForMode(int mode){return mode==0?0:mode==2?1:-1;}
     static int clampOption(int n){return Math.max(0,Math.min(2,n));}
     // Only probe the native helper inside Samsung Device Care on supported Android versions.
     // The helper's own availability check and a valid firmware profile are required too.

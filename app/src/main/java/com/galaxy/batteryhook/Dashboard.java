@@ -436,8 +436,15 @@ final class Dashboard extends LinearLayout {
     }
     private void paintProfilePosition(float position){
         for(int i=0;i<2;i++){
-            int color=blend(WHITE,ColorOsPalette.ACCENT,GlassMath.coverage(position,i));
-            if(profileTitles[i]!=null&&profileTitles[i].getCurrentTextColor()!=color)profileTitles[i].setTextColor(color);
+            float coverage=GlassMath.coverage(position,i);
+            int color=blend(WHITE,ColorOsPalette.ACCENT,coverage);
+            if(profileTitles[i]!=null){
+                if(profileTitles[i].getCurrentTextColor()!=color)profileTitles[i].setTextColor(color);
+                float scale=!quietMode&&MotionUi.enabled()?1f+.016f*coverage:1f;
+                if(Math.abs(profileTitles[i].getScaleX()-scale)>.002f){
+                    profileTitles[i].setScaleX(scale);profileTitles[i].setScaleY(scale);
+                }
+            }
         }
     }
     private void refreshProfile(){
@@ -497,9 +504,16 @@ final class Dashboard extends LinearLayout {
             Toast.makeText(a,"Direct profile switching unavailable on this firmware.",Toast.LENGTH_LONG).show();
             refreshProfile();return;
         }
-        if(mode==engine.activeMode()){if(lens!=null)lens.settle(mode);showMode(mode);refreshProfile();return;}
+        if(mode==engine.activeMode()){
+            if(lens!=null)lens.settle(mode);
+            if(profileRail!=null&&ReleaseRules.profileSlotForMode(mode)>=0)profileRail.settle(ReleaseRules.profileSlotForMode(mode));
+            showMode(mode);refreshProfile();return;
+        }
         busy=true;superSwitch.setEnabled(false);
         if(lens!=null)lens.settle(mode);
+        // Optimistic visual start only. Real Samsung state wins once verified below.
+        if(profileRail!=null&&ReleaseRules.profileSlotForMode(mode)>=0)
+            profileRail.settle(ReleaseRules.profileSlotForMode(mode));
         for(LinearLayout tile:modes)tile.setEnabled(false);
         engine.apply(mode,()->{
             if(!isAttachedToWindow())return;

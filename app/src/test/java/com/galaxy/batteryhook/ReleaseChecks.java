@@ -45,6 +45,12 @@ public class ReleaseChecks {
         assertEquals(0xff198bfe,ReleaseRules.batteryBarColor(true,false));
         assertEquals(0xff22ce37,ReleaseRules.batteryBarColor(false,false));
     }
+    @Test public void immediateProfileAnimationOnlyForRealTwoProfiles(){
+        assertEquals(0,ReleaseRules.profileSlotForMode(0));
+        assertEquals(1,ReleaseRules.profileSlotForMode(2));
+        assertEquals(-1,ReleaseRules.profileSlotForMode(1));
+        assertEquals(-1,ReleaseRules.profileSlotForMode(-1));
+    }
     @Test public void nativeProfileToTileMapping(){
         assertEquals(0,ReleaseRules.modeForSamsungProfile(1));
         assertEquals(2,ReleaseRules.modeForSamsungProfile(0));

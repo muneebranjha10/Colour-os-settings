@@ -57,7 +57,7 @@ class GlassRail extends View {
         anim=ValueAnimator.ofFloat(0f,1f);anim.setInterpolator(new LinearInterpolator());
         // A native-feeling response at touch, not a slow 500-700 ms wander.
         // Honor user animation settings but cap the transition to one short gesture.
-        anim.setDuration(Math.min(350,Math.max(140,duration.applyAsInt(Math.abs(next-startSlot)>1.1f?245:195))));
+        anim.setDuration(Math.min(265,Math.max(115,duration.applyAsInt(Math.abs(next-startSlot)>1.1f?210:170))));
         anim.addUpdateListener(v->{float t=(float)v.getAnimatedValue();head=clamp(GlassMath.between(startHead,next,GlassMath.railHead(t)));tail=clamp(GlassMath.between(startTail,next,GlassMath.railTail(t)));slot=clamp(GlassMath.between(startSlot,next,GlassMath.railHead(t)));energy=Math.max(startEnergy*(1-t),.26f*(float)Math.sin(Math.PI*t));pulse=startPulse*(1-t)+GlassMath.elasticPulse(t);frame();});
         anim.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){slot=head=tail=next;energy=pulse=0;frame();}});anim.start();
     }
@@ -113,7 +113,15 @@ class GlassRail extends View {
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);
             paint.setColor(Color.argb(Math.round(65*savingMix),255,199,39));canvas.drawPath(liquid,paint);
         }
-        paint.setShader(edge);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(style.getAsInt()==2?1.25f:.9f));paint.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(liquid,paint);paint.setStyle(Paint.Style.FILL);paint.setShader(null);
+        paint.setShader(edge);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(style.getAsInt()==2?1.25f:.9f));paint.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(liquid,paint);
+        // Transient bright optical rim driven by the same motion frame; no extra animator, blur, or allocations.
+        if(!quiet.getAsBoolean()&&energy>.015f){
+            paint.setShader(null);
+            paint.setColor(Color.argb(Math.round(Math.min(26f,energy*24f)),255,255,255));
+            paint.setStrokeWidth(dp(.75f));
+            canvas.drawPath(liquid,paint);
+        }
+        paint.setStyle(Paint.Style.FILL);paint.setShader(null);
         // Restrained ColorOS accent: only the short bottom highlight, not the entire glass body.
         if(!compact){float cx=xAt(slot)+widthAt(slot)*.5f;float half=Math.min(dp(9),widthAt(slot)*.12f);paint.setColor(ColorOsPalette.mix(ColorOsPalette.ACCENT,0xffffcc35,savingMix));canvas.drawRoundRect(cx-half,bottom-dp(4),cx+half,bottom-dp(2),dp(1),dp(1),paint);}
     }
