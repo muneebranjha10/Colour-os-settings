@@ -66,7 +66,7 @@ final class Dashboard extends LinearLayout {
     private SelectionLens lens;private GlassRail usageRail;private int usageRange;private boolean usageOpening;
     private HealthScreen healthScreen;private View dashboardHeader,dashboardScroll;private boolean leaving;
     private ChargingLens chargingLens;private LinearLayout chargingRow,monitorSection;private boolean chargingDragging;
-    private int glassStyle=1,animationStyle=1;private boolean showMonitor=true,showWatts=true,quietMode=false,haptics=true;
+    private int glassStyle=1,animationStyle=1,barStyle=1;private boolean barGlint=true,barFlow=true,showMonitor=true,showWatts=true,quietMode=false,haptics=true;
     private int chargeReminder=0;private boolean reminderFired;private TextView reminderNote;
     private ProtectionCard protectionCard;
     private boolean modeDragging;
@@ -83,7 +83,7 @@ final class Dashboard extends LinearLayout {
     private boolean observing;
     private final Runnable original;
     private final TextView number,charge;
-    private final Gauge bar;
+    private final LiquidBatteryBar bar;
     private final LinearLayout[] modes=new LinearLayout[3];
     private final TextView[] modeLabels=new TextView[3];
     private final TextView[] modeNotes=new TextView[3];
@@ -106,7 +106,7 @@ final class Dashboard extends LinearLayout {
     private void bindTap(View v,Runnable action){v.setClickable(true);v.setFocusable(true);v.setOnClickListener(w->{try{action.run();}catch(Throwable e){BatteryHook.log("action failed: "+e);Toast.makeText(a,"This control is unavailable on this device.",Toast.LENGTH_SHORT).show();}});}
     Dashboard(Activity activity,Runnable restore){
         super(activity);a=activity;original=restore;
-        uiContext=a;Typeface nativeFont=new TextView(a).getTypeface();deviceTypeface=nativeFont==null?Typeface.DEFAULT:nativeFont;engine=new NativeModes(a);telemetry=new ChargeTelemetry(a);chargingPolicy=new ChargingPolicy(a);android.content.SharedPreferences opts=a.getSharedPreferences("colour_battery_options",0);glassStyle=ReleaseRules.clampOption(opts.getInt("glass_style",1));animationStyle=ReleaseRules.clampOption(opts.getInt("animation_style",1));if(!opts.getBoolean("rc9_motion_migrated",false)){if(animationStyle==0)animationStyle=1;opts.edit().putInt("animation_style",animationStyle).putBoolean("rc9_motion_migrated",true).apply();}showMonitor=opts.getBoolean("show_monitor",true);showWatts=opts.getBoolean("show_watts",true);quietMode=opts.getBoolean("quiet_mode",false);haptics=opts.getBoolean("haptics",true);chargeReminder=opts.getInt("charge_reminder",0);thermalLimit=a.getSharedPreferences("colour_battery_options",0).getInt("thermal_alert",0);
+        uiContext=a;Typeface nativeFont=new TextView(a).getTypeface();deviceTypeface=nativeFont==null?Typeface.DEFAULT:nativeFont;engine=new NativeModes(a);telemetry=new ChargeTelemetry(a);chargingPolicy=new ChargingPolicy(a);android.content.SharedPreferences opts=a.getSharedPreferences("colour_battery_options",0);glassStyle=ReleaseRules.clampOption(opts.getInt("glass_style",1));animationStyle=ReleaseRules.clampOption(opts.getInt("animation_style",1));if(!opts.getBoolean("rc9_motion_migrated",false)){if(animationStyle==0)animationStyle=1;opts.edit().putInt("animation_style",animationStyle).putBoolean("rc9_motion_migrated",true).apply();}showMonitor=opts.getBoolean("show_monitor",true);showWatts=opts.getBoolean("show_watts",true);quietMode=opts.getBoolean("quiet_mode",false);haptics=opts.getBoolean("haptics",true);chargeReminder=opts.getInt("charge_reminder",0);thermalLimit=opts.getInt("thermal_alert",0);barStyle=ReleaseRules.clampOption(opts.getInt("battery_bar_style",1));barGlint=opts.getBoolean("battery_bar_glint",true);barFlow=opts.getBoolean("battery_bar_flow",true);
         setOrientation(VERTICAL);setBackgroundColor(BG);setClickable(true);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
         WindowBars.bind(a.getWindow(),this);
@@ -119,7 +119,7 @@ final class Dashboard extends LinearLayout {
         LinearLayout body=col();body.setPadding(dp(18),dp(12),dp(18),dp(24));scroll.addView(body,new ScrollView.LayoutParams(-1,-2));
         LinearLayout chargeRow=row();chargeRow.setGravity(Gravity.BOTTOM);
         LinearLayout amount=row();amount.setGravity(Gravity.BOTTOM);number=text("—",44,WHITE,true);number.setIncludeFontPadding(true);amount.addView(number);TextView pct=text("%",16,WHITE,true);pct.setPadding(dp(4),0,0,dp(5));amount.addView(pct);chargeRow.addView(amount,new LayoutParams(-2,-2));LinearLayout chargingText=col();chargingText.setGravity(Gravity.END);chargingText.setPadding(dp(6),0,0,dp(4));charge=text("",12,WHITE,true);charge.setGravity(Gravity.END);charge.setSingleLine(true);charge.setAutoSizeTextTypeUniformWithConfiguration(9,12,1,TypedValue.COMPLEX_UNIT_SP);chargeDetail=text("",10,MUTED,false);chargeDetail.setGravity(Gravity.END);chargeDetail.setMaxLines(2);chargingText.addView(charge,new LayoutParams(-1,dp(19)));chargingText.addView(chargeDetail,new LayoutParams(-1,-2));chargeRow.addView(chargingText,new LayoutParams(0,-2,1));tap(chargingText,this::chargingInfo);add(body,chargeRow,-2);space(body,8);
-        bar=new Gauge();add(body,bar,29);space(body,23);
+        bar=new LiquidBatteryBar(a,()->quietMode,this::duration);bar.configure(barStyle,barGlint,barFlow);add(body,bar,29);space(body,23);
         TextView instructions=text("Instructions ⓘ",14,MUTED,false);instructions.setPadding(dp(10),0,0,dp(2));add(body,instructions,-2);tap(instructions,()->dialog("Instructions","Balanced uses Samsung Light profile when confirmed; Performance uses Samsung Standard (no overclocking). Power saving and Super power saving control the same Samsung saver. Times are Samsung estimates or measured discharge estimates, not guarantees. Tap ⋮ for the original page."));space(body,9);
         LinearLayout main=card();add(body,main,-2);
         LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode",engine.supportsLight()?"Performance\n(Standard)":"Performance\nsettings"};
@@ -150,7 +150,10 @@ final class Dashboard extends LinearLayout {
         powerGraph=new PowerGraph();add(monitor,powerGraph,84);space(monitor,8);liveSource=text("Measured battery power · current page only",11,MUTED,false);add(monitor,liveSource,-2);space(monitor,16);
         item(monitor,"Detailed battery diagnostics",null,this::chargingInfo);add(monitorSection,monitor,-2);add(body,monitorSection,-2);monitorSection.setVisibility(showMonitor?VISIBLE:GONE);
         LinearLayout custom=settingsCard();
+        settingsItem(custom,"Battery bar studio","Animated liquid fill, reflection and glow",this::barStudio);
         settingsItem(custom,"Customize appearance","Glass style, animation speed and monitor",this::customize);
+        settingsItem(custom,"Battery tools","Battery health, diagnostics and native controls",this::batteryTools);
+        settingsItem(custom,"Wattage accuracy","Understand charging watts and sensor data",this::wattTools);
         thermalNote=settingsItem(custom,"Battery temperature alert",thermalLimit==0?"Disabled · while this page is open":"Warn at "+thermalLimit+" °C · while this page is open",this::chooseThermalAlert);
         reminderNote=settingsItem(custom,"Charge target reminder",reminderLabel(),this::chooseChargeReminder);
         settingsItem(custom,"Compatibility report","Device, software and available controls",this::compatibility);
@@ -170,7 +173,7 @@ final class Dashboard extends LinearLayout {
         nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");addSettingsGroup(body,"App battery management",apps);
         LinearLayout stockCard=settingsCard();settingsItem(stockCard,"Original Samsung Battery","All native battery features",original);addSettingsGroup(body,null,stockCard);
         space(body,27);TextView credit=text("Made by Muneeb",14,0xffb6b6b6,false);credit.setGravity(Gravity.CENTER);credit.setIncludeFontPadding(true);add(body,credit,-2);
-        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC11",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
+        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC12",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
         ready=true;refresh();
         MotionUi.enter(header,duration(240),quietMode,0,dp(8));MotionUi.enter(scroll,duration(340),quietMode,0,dp(20));
     }
@@ -278,9 +281,36 @@ final class Dashboard extends LinearLayout {
         showPanel(new AlertDialog.Builder(a).setTitle("Battery temperature alert").setSingleChoiceItems(names,checked,(d,w)->{thermalLimit=values[w];thermalWarned=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("thermal_alert",thermalLimit).apply();thermalNote.setText(thermalLimit==0?"Disabled · only while this page is open":"Warn at "+thermalLimit+" °C · while this page is open");d.dismiss();}).setNegativeButton("Cancel",null));
     }
     private int duration(int ms){return PageMotion.duration(ms,animationStyle,quietMode);}
+    private void barStudio(){
+        LinearLayout panel=col();panel.setPadding(dp(20),dp(8),dp(20),dp(8));
+        add(panel,text("Battery bar effects",15,WHITE,false),-2);
+        android.widget.RadioGroup styles=new android.widget.RadioGroup(a);
+        String[] names={"Crystal glow","Liquid wave","Clean minimal"};
+        for(int i=0;i<names.length;i++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(600+i);b.setText(names[i]);b.setTextColor(WHITE);styles.addView(b);if(i==barStyle)styles.check(b.getId());}
+        add(panel,styles,-2);space(panel,10);
+        Switch glint=new Switch(a);glint.setText("Traveling light reflection");glint.setTextColor(WHITE);glint.setChecked(barGlint);add(panel,glint,-2);
+        Switch motion=new Switch(a);motion.setText("Continuous charging animation");motion.setTextColor(WHITE);motion.setChecked(barFlow);add(panel,motion,-2);space(panel,10);
+        add(panel,text("Animations pause when the page is not focused or Low Power UI is enabled.",12,MUTED,false),-2);
+        showPanel(new AlertDialog.Builder(a).setTitle("Battery bar studio").setView(panel).setNegativeButton("Cancel",null).setNeutralButton("Reset",(d,w)->saveBarStyle(1,true,true)).setPositiveButton("Apply",(d,w)->saveBarStyle(ReleaseRules.clampOption(styles.getCheckedRadioButtonId()-600),glint.isChecked(),motion.isChecked())));
+    }
+    private void saveBarStyle(int style,boolean glint,boolean motion){
+        barStyle=ReleaseRules.clampOption(style);barGlint=glint;barFlow=motion;
+        a.getSharedPreferences("colour_battery_options",0).edit().putInt("battery_bar_style",barStyle).putBoolean("battery_bar_glint",barGlint).putBoolean("battery_bar_flow",barFlow).apply();
+        bar.configure(barStyle,barGlint,barFlow);refresh();
+    }
+    private void batteryTools(){
+        showPanel(new AlertDialog.Builder(a).setTitle("Battery tools").setItems(new String[]{"Battery health and cycles","Charging diagnostics","Battery protection","Power saving settings","Performance profile","Original Samsung Battery"},(d,w)->{
+            if(w==0)health();else if(w==1)chargingInfo();else if(w==2)openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity");
+            else if(w==3)openNative("com.samsung.android.sm.powermode.ui.PowerModeSettingsActivity");
+            else if(w==4)openNative("com.samsung.android.sm.battery.ui.setting.PerformanceOptimizationActivity");else original.run();
+        }).setNegativeButton("Close",null));
+    }
+    private void wattTools(){
+        showPanel(new AlertDialog.Builder(a).setTitle("Wattage accuracy").setMessage("Android exposes battery-side current and voltage, not watts at the USB input. Battery-side watts can be estimated from voltage × current, but a sensor may be uncalibrated or unreadable. This module hides unverified and near-zero charging power rather than claiming exact charger output.").setNegativeButton("Close",null).setPositiveButton("View diagnostics",(d,w)->chargingInfo()));
+    }
     private String reminderLabel(){return chargeReminder==0?"Disabled":"Alert at "+chargeReminder+"% · page only";}
     private void chooseChargeReminder(){int[] values={0,70,80,85,90,95,100};String[] names={"Disabled","70%","80%","85%","90%","95%","100%"};int ix=0;for(int k=0;k<values.length;k++)if(values[k]==chargeReminder)ix=k;showPanel(new AlertDialog.Builder(a).setTitle("Charge target reminder").setSingleChoiceItems(names,ix,(d,w)->{chargeReminder=values[w];reminderFired=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("charge_reminder",chargeReminder).apply();reminderNote.setText(reminderLabel());d.dismiss();refresh();}).setNegativeButton("Cancel",null));}
-    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC11\nPerformance controls: "+(engine.supportsLight()?"Native Samsung Light / Standard helper confirmed":"Native settings fallback; profile helper not confirmed")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
+    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC12\nPerformance controls: "+(engine.supportsLight()?"Native Samsung Light / Standard helper confirmed":"Native settings fallback; profile helper not confirmed")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
     private void customize(){
         LinearLayout p=col();p.setPadding(dp(20),dp(8),dp(20),dp(8));add(p,text("Liquid glass strength",15,WHITE,false),-2);
         android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Neutral silver glass","Classic ColorOS glass","Original emerald glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
@@ -292,7 +322,7 @@ final class Dashboard extends LinearLayout {
         ScrollView popupScroll=new ScrollView(a);popupScroll.addView(p);
         showPanel(new AlertDialog.Builder(a).setTitle("Customize appearance").setView(popupScroll).setNegativeButton("Cancel",null).setNeutralButton("Reset",(d,w)->applyOptions(1,1,true,true,false,true)).setPositiveButton("Apply",(d,w)->applyOptions(Math.max(0,g.getCheckedRadioButtonId()-100),Math.max(0,speeds.getCheckedRadioButtonId()-200),show.isChecked(),watts.isChecked(),quiet.isChecked(),vibration.isChecked())));
     }
-    private void applyOptions(int g,int speed,boolean monitor,boolean watts,boolean quiet,boolean vibration){glassStyle=ReleaseRules.clampOption(g);animationStyle=ReleaseRules.clampOption(speed);showMonitor=monitor;showWatts=watts;quietMode=quiet;haptics=vibration;a.getSharedPreferences("colour_battery_options",0).edit().putInt("glass_style",glassStyle).putInt("animation_style",animationStyle).putBoolean("show_monitor",showMonitor).putBoolean("show_watts",showWatts).putBoolean("quiet_mode",quietMode).putBoolean("haptics",haptics).apply();if(lens!=null)lens.invalidate();if(chargingLens!=null)chargingLens.invalidate();if(usageRail!=null)usageRail.invalidate();if(protectionCard!=null)protectionCard.appearanceChanged();if(monitorSection!=null)monitorSection.setVisibility(showMonitor?VISIBLE:GONE);refresh();}
+    private void applyOptions(int g,int speed,boolean monitor,boolean watts,boolean quiet,boolean vibration){glassStyle=ReleaseRules.clampOption(g);animationStyle=ReleaseRules.clampOption(speed);showMonitor=monitor;showWatts=watts;quietMode=quiet;haptics=vibration;a.getSharedPreferences("colour_battery_options",0).edit().putInt("glass_style",glassStyle).putInt("animation_style",animationStyle).putBoolean("show_monitor",showMonitor).putBoolean("show_watts",showWatts).putBoolean("quiet_mode",quietMode).putBoolean("haptics",haptics).apply();if(lens!=null)lens.invalidate();if(chargingLens!=null)chargingLens.invalidate();if(usageRail!=null)usageRail.invalidate();if(protectionCard!=null)protectionCard.appearanceChanged();if(monitorSection!=null)monitorSection.setVisibility(showMonitor?VISIBLE:GONE);if(bar!=null)bar.refreshEffects();refresh();}
     private void addChargingModes(LinearLayout body){
         LinearLayout c=card(),r=row();chargingRow=r;String[] titles={"Standard\ncharging","Fast & super fast\ncharging"};String[] desc={"Normal speed","Automatically negotiated"};
         for(int i=0;i<2;i++){final int mode=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER);tile.setPadding(dp(6),dp(9),dp(6),dp(9));chargingTiles[i]=tile;TextView z=text(i==0?"ϟ":"ϟϟ",23,WHITE,true);z.setGravity(Gravity.CENTER);add(tile,z,28);TextView title=text(titles[i],13,WHITE,false);title.setGravity(Gravity.CENTER);title.setMaxLines(3);chargingTitles[i]=title;add(tile,title,48);TextView sub=text(desc[i],10,MUTED,false);sub.setGravity(Gravity.CENTER);sub.setMaxLines(2);add(tile,sub,30);LayoutParams lp=new LayoutParams(0,dp(119),1);if(i>0)lp.leftMargin=dp(10);r.addView(tile,lp);tapGlass(tile,22,()->selectChargingPolicy(mode));}
@@ -409,29 +439,6 @@ final class Dashboard extends LinearLayout {
     private void paintChargingPosition(float position){for(int j=0;j<2;j++){int c=blend(WHITE,ColorOsPalette.ACCENT,GlassMath.coverage(position,j));if(chargingTitles[j]!=null&&chargingTitles[j].getCurrentTextColor()!=c)chargingTitles[j].setTextColor(c);}}
     private final class ChargingLens extends GlassRail {ChargingLens(){super(Dashboard.this.a,chargingTiles,()->glassStyle,()->quietMode,Dashboard.this::duration,false);setMotionListener(Dashboard.this::paintChargingPosition);}}
     private final class SelectionLens extends GlassRail {SelectionLens(){super(Dashboard.this.a,modes,()->glassStyle,()->quietMode,Dashboard.this::duration,false);setMotionListener(Dashboard.this::paintModePosition);}void dragTo(float value){preview(value);}}
-    private final class Gauge extends View {
-        private final Paint p=new Paint(3);private final Path clip=new Path();private final RectF bounds=new RectF();
-        private float level=0,wanted=-1,front=1;private int base=0xff17db26,targetColor=base;private boolean known=false;
-        private ValueAnimator motion,transition;
-        Gauge(){super(a);}
-        void stop(){if(motion!=null)motion.cancel();if(transition!=null)transition.cancel();}
-        void setLevel(int value,boolean plug,boolean saving){
-            float target=Math.max(0,value)/100f;
-            // ColorOS-style priority: verified power saving yellow, otherwise charging blue or regular green.
-            int color=ReleaseRules.batteryBarColor(plug,saving);
-            boolean changed=known&&targetColor!=color;boolean first=!known;known=true;
-            if(wanted!=target){wanted=target;if(motion!=null)motion.cancel();final float initial=level;motion=ValueAnimator.ofFloat(initial,target);motion.setDuration(duration(first?360:240));motion.setInterpolator(new PathInterpolator(.18f,.75f,.2f,1f));motion.addUpdateListener(v->{level=(float)v.getAnimatedValue();invalidate();});motion.start();}
-            if(first){base=targetColor=color;front=1;invalidate();}
-            else if(changed){if(transition!=null)transition.cancel();base=targetColor;targetColor=color;front=0;transition=ValueAnimator.ofFloat(0f,1f);transition.setDuration(duration(saving?660:plug?620:480));transition.setInterpolator(new PathInterpolator(.12f,.75f,.18f,1f));transition.addUpdateListener(v->{front=(float)v.getAnimatedValue();invalidate();});transition.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator an){base=targetColor;front=1;invalidate();}});transition.start();}
-            setContentDescription(value<0?"Battery level unavailable":"Battery level "+value+" percent"+(saving?", power saving active":"")+(plug?", connected to power":""));
-        }
-        @Override protected void onDraw(Canvas c){
-            float w=getWidth(),h=getHeight(),r=h*.36f;p.setShader(null);p.setColor(TILE);c.drawRoundRect(0,0,w,h,r,r,p);if(level<=0)return;
-            float fill=w*level;bounds.set(0,0,fill,h);clip.reset();clip.addRoundRect(bounds,r,r,Path.Direction.CW);c.save();c.clipPath(clip);p.setColor(base);c.drawRect(0,0,fill,h,p);
-            if(front<.999f){float edge=(fill+h)*front-h*.5f,soft=Math.max(1,h*.34f);p.setShader(new LinearGradient(edge-soft,0,edge+soft,0,new int[]{targetColor,blend(targetColor,0xfffff3bd,.42f),base},new float[]{0,.60f,1},Shader.TileMode.CLAMP));c.drawRect(0,0,fill,h,p);p.setShader(null);}else{p.setColor(targetColor);c.drawRect(0,0,fill,h,p);}
-            c.restore();
-        }
-    }
     private final class Symbol extends View{final int kind;int color;final Paint p=new Paint(3);Symbol(int k,int tint){super(a);kind=k;color=tint;}
        @Override protected void onDraw(Canvas c){super.onDraw(c);float scale=Math.min(getWidth(),getHeight())/48f;c.save();c.translate((getWidth()-48*scale)/2,(getHeight()-48*scale)/2);c.scale(scale,scale);p.setColor(color);p.setStrokeWidth(3);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);p.setStyle(Paint.Style.STROKE);if(kind==0){c.drawLine(12,24,35,24,p);c.drawLine(12,24,23,13,p);c.drawLine(12,24,23,35,p);}else if(kind==1||kind==2||kind==4){c.drawRoundRect(6,12,39,36,5,5,p);c.drawLine(43,19,43,29,p);p.setStyle(Paint.Style.FILL);if(kind==1)c.drawRoundRect(10,16,23,32,2,2,p);else if(kind==2){c.drawOval(13,17,32,28,p);p.setColor(TILE);p.setStrokeWidth(2);c.drawLine(13,31,27,21,p);}else{android.graphics.Path s=new android.graphics.Path();s.moveTo(23,11);s.lineTo(27,20);s.lineTo(36,24);s.lineTo(27,28);s.lineTo(23,37);s.lineTo(19,28);s.lineTo(10,24);s.lineTo(19,20);s.close();c.drawPath(s,p);}}else{c.drawArc(7,7,41,41,145,250,false,p);c.drawLine(24,24,32,13,p);p.setStyle(Paint.Style.FILL);c.drawCircle(24,24,3,p);}c.restore();}
     }
