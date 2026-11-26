@@ -5,6 +5,11 @@ final class ReleaseRules {
     static int clampOption(int n){return Math.max(0,Math.min(2,n));}
     // Only probe the native helper inside Samsung Device Care on supported Android versions.
     // The helper's own availability check and a valid firmware profile are required too.
+    // ChargingPolicy still requires a tested model/firmware combination;
+    // do not confuse this strict charging gate with the read-verified performance helper.
+    static boolean testedHelperFamily(String model,int api){
+        return "SM-S911B".equalsIgnoreCase(model)&&(api==36||api==37);
+    }
     static boolean canProbeLightProfile(String manufacturer,String packageName,int api,int current){
         return "samsung".equalsIgnoreCase(manufacturer)
             && "com.samsung.android.lool".equals(packageName)
