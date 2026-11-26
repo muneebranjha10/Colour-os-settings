@@ -40,7 +40,7 @@ final class HealthScreen {
     private final java.util.Map<String,TextView> fieldValues=new java.util.LinkedHashMap<>();
     private ValueAnimator animation;
     private static final int WHITE=0xffeeeeee,MUTE=0xffa5a5a5,GREEN=ColorOsPalette.ACCENT,CARD=0xff1b1b1b;
-    HealthScreen(Activity a,android.widget.FrameLayout host,Runnable protection,int duration,boolean quiet,Runnable onClosed){this.a=a;this.host=host;this.protection=protection;this.duration=duration;this.quiet=quiet;this.onClosed=onClosed;font=new TextView(a).getTypeface();}
+    HealthScreen(Activity a,android.widget.FrameLayout host,Runnable protection,int duration,boolean quiet,Runnable onClosed){this.a=a;this.host=host;this.protection=protection;this.duration=duration;this.quiet=quiet;this.onClosed=onClosed;font=FontStore.get(a);}
     private int dp(float n){return Math.round(n*a.getResources().getDisplayMetrics().density);}
     private LinearLayout col(){LinearLayout l=new LinearLayout(a);l.setOrientation(LinearLayout.VERTICAL);return l;}
     private TextView text(String title,int sp,int color,boolean bold){TextView t=new TextView(a);t.setText(title);t.setTextColor(color);t.setTextSize(sp);t.setTypeface(Typeface.create(font==null?Typeface.DEFAULT:font,bold?600:400,false));return t;}

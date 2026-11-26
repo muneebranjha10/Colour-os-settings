@@ -26,6 +26,7 @@ public final class BatteryHook implements IXposedHookLoadPackage {
             });
             log("onResume hook installed");
         }catch(Throwable t){log("hook failed: "+t);}
+        installFontPickerHook(p.classLoader);
         // Legacy back fallback, only while our health page is open in BatteryActivity.
         XC_MethodHook back=new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam param){
             if(!(param.thisObject instanceof Activity)||!ACT.equals(param.thisObject.getClass().getName()))return;
@@ -35,6 +36,30 @@ public final class BatteryHook implements IXposedHookLoadPackage {
         try{XposedHelpers.findAndHookMethod(ACT,p.classLoader,"onBackPressed",back);}catch(Throwable t){
             try{XposedHelpers.findAndHookMethod("android.app.Activity",p.classLoader,"onBackPressed",back);}catch(Throwable ignored){log("legacy health back fallback unavailable");}
         }
+    }
+    private static final java.util.concurrent.atomic.AtomicBoolean fontPickerBusy=new java.util.concurrent.atomic.AtomicBoolean(false);
+    private void installFontPickerHook(ClassLoader loader){
+        XC_MethodHook result=new XC_MethodHook(){
+            @Override protected void afterHookedMethod(MethodHookParam p){
+                if(!(p.thisObject instanceof Activity)||!ACT.equals(p.thisObject.getClass().getName()))return;
+                if(((Integer)p.args[0])!=FontStore.REQUEST||((Integer)p.args[1])!=Activity.RESULT_OK)return;
+                android.content.Intent data=(android.content.Intent)p.args[2];
+                if(data==null||data.getData()==null||!fontPickerBusy.compareAndSet(false,true))return;
+                Activity activity=(Activity)p.thisObject;android.net.Uri uri=data.getData();
+                new Thread(()->{
+                    String feedback="OPPO Sans font imported";
+                    try{FontStore.importFromDocument(activity,uri);}catch(Throwable t){feedback="Font import failed: "+t.getMessage();log("Font import: "+t);}
+                    final String message=feedback;
+                    activity.runOnUiThread(()->{
+                        try{ViewGroup content=activity.findViewById(android.R.id.content);if(content!=null){View view=content.findViewWithTag(TAG);if(view instanceof Dashboard)((Dashboard)view).refreshFont();}
+                            android.widget.Toast.makeText(activity,message,android.widget.Toast.LENGTH_LONG).show();
+                        }catch(Throwable t){log("Font UI refresh: "+t);}finally{fontPickerBusy.set(false);}
+                    });
+                },"ColorBattery-FontImport").start();
+            }
+        };
+        try{XposedHelpers.findAndHookMethod(ACT,loader,"onActivityResult",int.class,int.class,android.content.Intent.class,result);}catch(Throwable ignored){}
+        try{XposedHelpers.findAndHookMethod("android.app.Activity",loader,"onActivityResult",int.class,int.class,android.content.Intent.class,result);}catch(Throwable t){log("Font picker callback unsupported: "+t);}
     }
     private final java.util.Set<Activity> stock=java.util.Collections.newSetFromMap(new java.util.WeakHashMap<Activity,Boolean>());
     private void attach(Activity a){

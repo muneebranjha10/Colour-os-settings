@@ -49,7 +49,7 @@ final class Dashboard extends LinearLayout {
     private static final int BG=0xff000000,CARD=0xff1b1b1b,TILE=0xff292929,WHITE=0xfff2f2f2,MUTED=0xff9a9a9a,BLUE=0xff168cf4,GREEN=0xff39ce49;
     private final Activity a;
     private final Context uiContext;
-    private final Typeface deviceTypeface;
+    private Typeface deviceTypeface;
     private TextView assistantSummary,chargeDetail,liveTemp,liveCurrent,liveVoltage,liveCharge,liveSession,liveSource,chargeNeeded,chargePolicyNote,thermalNote;
     private final LinearLayout[] chargingTiles=new LinearLayout[2];private final TextView[] chargingTitles=new TextView[2];
     private int thermalLimit=0;private boolean thermalWarned;
@@ -106,7 +106,7 @@ final class Dashboard extends LinearLayout {
     private void bindTap(View v,Runnable action){v.setClickable(true);v.setFocusable(true);v.setOnClickListener(w->{try{action.run();}catch(Throwable e){BatteryHook.log("action failed: "+e);Toast.makeText(a,"This control is unavailable on this device.",Toast.LENGTH_SHORT).show();}});}
     Dashboard(Activity activity,Runnable restore){
         super(activity);a=activity;original=restore;
-        uiContext=a;Typeface nativeFont=new TextView(a).getTypeface();deviceTypeface=nativeFont==null?Typeface.DEFAULT:nativeFont;engine=new NativeModes(a);telemetry=new ChargeTelemetry(a);chargingPolicy=new ChargingPolicy(a);android.content.SharedPreferences opts=a.getSharedPreferences("colour_battery_options",0);glassStyle=ReleaseRules.clampOption(opts.getInt("glass_style",1));animationStyle=ReleaseRules.clampOption(opts.getInt("animation_style",1));if(!opts.getBoolean("rc9_motion_migrated",false)){if(animationStyle==0)animationStyle=1;opts.edit().putInt("animation_style",animationStyle).putBoolean("rc9_motion_migrated",true).apply();}showMonitor=opts.getBoolean("show_monitor",true);showWatts=opts.getBoolean("show_watts",true);quietMode=opts.getBoolean("quiet_mode",false);haptics=opts.getBoolean("haptics",true);chargeReminder=opts.getInt("charge_reminder",0);thermalLimit=opts.getInt("thermal_alert",0);barStyle=ReleaseRules.clampOption(opts.getInt("battery_bar_style",1));barGlint=opts.getBoolean("battery_bar_glint",true);barFlow=opts.getBoolean("battery_bar_flow",true);
+        uiContext=a;deviceTypeface=FontStore.get(a);engine=new NativeModes(a);telemetry=new ChargeTelemetry(a);chargingPolicy=new ChargingPolicy(a);android.content.SharedPreferences opts=a.getSharedPreferences("colour_battery_options",0);glassStyle=ReleaseRules.clampOption(opts.getInt("glass_style",1));animationStyle=ReleaseRules.clampOption(opts.getInt("animation_style",1));if(!opts.getBoolean("rc9_motion_migrated",false)){if(animationStyle==0)animationStyle=1;opts.edit().putInt("animation_style",animationStyle).putBoolean("rc9_motion_migrated",true).apply();}showMonitor=opts.getBoolean("show_monitor",true);showWatts=opts.getBoolean("show_watts",true);quietMode=opts.getBoolean("quiet_mode",false);haptics=opts.getBoolean("haptics",true);chargeReminder=opts.getInt("charge_reminder",0);thermalLimit=opts.getInt("thermal_alert",0);barStyle=ReleaseRules.clampOption(opts.getInt("battery_bar_style",1));barGlint=opts.getBoolean("battery_bar_glint",true);barFlow=opts.getBoolean("battery_bar_flow",true);
         setOrientation(VERTICAL);setBackgroundColor(BG);setClickable(true);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
         WindowBars.bind(a.getWindow(),this);
@@ -150,7 +150,8 @@ final class Dashboard extends LinearLayout {
         powerGraph=new PowerGraph();add(monitor,powerGraph,84);space(monitor,8);liveSource=text("Measured battery power · current page only",11,MUTED,false);add(monitor,liveSource,-2);space(monitor,16);
         item(monitor,"Detailed battery diagnostics",null,this::chargingInfo);add(monitorSection,monitor,-2);add(body,monitorSection,-2);monitorSection.setVisibility(showMonitor?VISIBLE:GONE);
         LinearLayout custom=settingsCard();
-        settingsItem(custom,"Battery bar studio","Animated liquid fill, reflection and glow",this::barStudio);
+        settingsItem(custom,"Battery bar studio","ColorOS reference geometry and motion",this::barStudio);
+        settingsItem(custom,"OPPO Sans 4.0 font",FontStore.has(a)?"Imported from your font file":"Import official font file for exact lettering",this::fontOptions);
         settingsItem(custom,"Customize appearance","Glass style, animation speed and monitor",this::customize);
         settingsItem(custom,"Battery tools","Battery health, diagnostics and native controls",this::batteryTools);
         settingsItem(custom,"Wattage accuracy","Understand charging watts and sensor data",this::wattTools);
@@ -297,6 +298,24 @@ final class Dashboard extends LinearLayout {
         barStyle=ReleaseRules.clampOption(style);barGlint=glint;barFlow=motion;
         a.getSharedPreferences("colour_battery_options",0).edit().putInt("battery_bar_style",barStyle).putBoolean("battery_bar_glint",barGlint).putBoolean("battery_bar_flow",barFlow).apply();
         bar.configure(barStyle,barGlint,barFlow);refresh();
+    }
+    private void fontOptions(){
+        showPanel(new AlertDialog.Builder(a).setTitle("OPPO Sans 4.0").setMessage("ColorOS uses OPPO Sans. To match its lettering, download the original OPPO Sans 4.0 font from OPPO's website and import your own TTF/OTF file. The font is only saved locally in Samsung Device Care data; it is not bundled into this APK.").setItems(new String[]{
+            "Import official font file","Open OPPO's official font page","Use Samsung font"
+        },(d,w)->{
+            if(w==0){try{
+                Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);a.startActivityForResult(i,FontStore.REQUEST);
+            }catch(Throwable t){Toast.makeText(a,"Font picker unavailable",Toast.LENGTH_SHORT).show();}}
+            else if(w==1){try{a.startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://www.coloros.com/article/A00000074/")));}catch(Throwable t){Toast.makeText(a,"Visit coloros.com to download the official font",Toast.LENGTH_LONG).show();}}
+            else{FontStore.clear(a);refreshFont();}
+        }).setNegativeButton("Close",null));
+    }
+    void refreshFont(){
+        deviceTypeface=FontStore.get(a);updateFonts(this);requestLayout();invalidate();
+    }
+    private void updateFonts(View view){
+        if(view instanceof TextView){TextView t=(TextView)view;Typeface old=t.getTypeface();int weight=old==null?400:old.getWeight();t.setTypeface(Typeface.create(deviceTypeface,Math.max(100,Math.min(900,weight)),false));}
+        if(view instanceof ViewGroup){ViewGroup v=(ViewGroup)view;for(int n=0;n<v.getChildCount();n++)updateFonts(v.getChildAt(n));}
     }
     private void batteryTools(){
         showPanel(new AlertDialog.Builder(a).setTitle("Battery tools").setItems(new String[]{"Battery health and cycles","Charging diagnostics","Battery protection","Power saving settings","Performance profile","Original Samsung Battery"},(d,w)->{
