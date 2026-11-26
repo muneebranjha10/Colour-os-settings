@@ -32,7 +32,7 @@ class GlassRail extends View {
         if(tintAnimation!=null){tintAnimation.cancel();tintAnimation=null;}
         float end=enabled?1f:0f;
         if(quiet.getAsBoolean()||!MotionUi.enabled()){savingMix=end;frame();return;}
-        tintAnimation=ValueAnimator.ofFloat(savingMix,end);tintAnimation.setDuration(duration.applyAsInt(480));tintAnimation.setInterpolator(new android.view.animation.PathInterpolator(.2f,.75f,.2f,1f));
+        tintAnimation=ValueAnimator.ofFloat(savingMix,end);tintAnimation.setDuration(Math.min(280,duration.applyAsInt(190)));tintAnimation.setInterpolator(new android.view.animation.PathInterpolator(.2f,.75f,.2f,1f));
         tintAnimation.addUpdateListener(v->{savingMix=(float)v.getAnimatedValue();frame();});tintAnimation.start();
     }
     @Override protected void onDetachedFromWindow(){stop();if(tintAnimation!=null){tintAnimation.cancel();tintAnimation=null;}super.onDetachedFromWindow();}
@@ -54,8 +54,11 @@ class GlassRail extends View {
         if(target==next&&anim!=null&&anim.isRunning())return;
         if(slot<0||quiet.getAsBoolean()||!MotionUi.enabled()||(Math.abs(head-next)<.001f&&Math.abs(tail-next)<.001f&&energy<.01f&&Math.abs(pulse)<.01f)){stop();slot=head=tail=target=next;energy=pulse=0;frame();return;}
         stop();target=next;final float startHead=head,startTail=tail,startSlot=slot,startEnergy=energy,startPulse=pulse;
-        anim=ValueAnimator.ofFloat(0f,1f);anim.setInterpolator(new LinearInterpolator());anim.setDuration(duration.applyAsInt(Math.abs(next-startSlot)>1.1f?560:440));
-        anim.addUpdateListener(v->{float t=(float)v.getAnimatedValue();head=clamp(GlassMath.between(startHead,next,GlassMath.railHead(t)));tail=clamp(GlassMath.between(startTail,next,GlassMath.railTail(t)));slot=clamp(GlassMath.between(startSlot,next,GlassMath.railHead(t)));energy=Math.max(startEnergy*(1-t),(float)Math.sin(Math.PI*t));pulse=startPulse*(1-t)+GlassMath.elasticPulse(t);frame();});
+        anim=ValueAnimator.ofFloat(0f,1f);anim.setInterpolator(new LinearInterpolator());
+        // A native-feeling response at touch, not a slow 500-700 ms wander.
+        // Honor user animation settings but cap the transition to one short gesture.
+        anim.setDuration(Math.min(350,Math.max(140,duration.applyAsInt(Math.abs(next-startSlot)>1.1f?245:195))));
+        anim.addUpdateListener(v->{float t=(float)v.getAnimatedValue();head=clamp(GlassMath.between(startHead,next,GlassMath.railHead(t)));tail=clamp(GlassMath.between(startTail,next,GlassMath.railTail(t)));slot=clamp(GlassMath.between(startSlot,next,GlassMath.railHead(t)));energy=Math.max(startEnergy*(1-t),.26f*(float)Math.sin(Math.PI*t));pulse=startPulse*(1-t)+GlassMath.elasticPulse(t);frame();});
         anim.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){slot=head=tail=next;energy=pulse=0;frame();}});anim.start();
     }
     private float xAt(float v){int i=Math.min(tiles.length-2,Math.max(0,(int)Math.floor(v)));return GlassMath.between(tiles[i].getLeft(),tiles[i+1].getLeft(),v-i);}
@@ -73,9 +76,15 @@ class GlassRail extends View {
         paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(0xff292929);
         for(View t:tiles){card.set(t.getLeft(),t.getTop(),t.getRight(),t.getBottom());canvas.drawRoundRect(card,dp(compact?15:22),dp(compact?15:22),paint);}
         if(slot<0)return;
-        float x1=xAt(head),x2=xAt(tail),w1=widthAt(head),w2=widthAt(tail);float left=Math.min(x1,x2)+dp(1),right=Math.max(x1+w1,x2+w2)-dp(1);
+        // Use a single moving filled capsule. The old union of head and tail spread
+        // the glass across two or three cards for hundreds of milliseconds.
+        // A limited leading lip preserves the liquid impression without smearing.
+        float x=xAt(slot),tileWidth=widthAt(slot);
+        float lag=GlassMath.clamp(head-tail,-.4f,.4f);
+        float lip=Math.min(dp(8),Math.abs(lag)*tileWidth*.18f);
+        float left=x+dp(1)-(lag<0?lip:0),right=x+tileWidth-dp(1)+(lag>0?lip:0);
         float top=tiles[0].getTop()+dp(1),bottom=tiles[0].getBottom()-dp(1),h=bottom-top;if(h<=0||right<=left)return;
-        float movement=Math.min(1,Math.abs(head-tail)),lift=quiet.getAsBoolean()?0:Math.min(dp(3),h*.055f)*(energy*.65f+pulse*.35f);
+        float movement=Math.min(1f,Math.abs(lag)),lift=quiet.getAsBoolean()?0:Math.min(dp(1),h*.02f)*(energy*.65f+pulse*.35f);
         top+=lift;bottom-=lift;h=bottom-top;float radius=Math.min(dp(compact?15:23),h*.43f),span=right-left,mid=(left+right)*.5f,neck=GlassMath.neckFraction(movement)*h;radius=Math.min(radius,span*.45f);float k=Math.max(0,Math.min((span-2*radius)*.33f,dp(24)));
         liquid.reset();if(movement<.002f){card.set(left,top,right,bottom);liquid.addRoundRect(card,radius,radius,Path.Direction.CW);}else{liquid.moveTo(left+radius,top);
         liquid.cubicTo(left+radius+k,top,mid-k*.5f,top+neck,mid,top+neck);
@@ -87,7 +96,9 @@ class GlassRail extends View {
         // Cache at the fixed card height, not the animated height.
         colors(tiles[0].getTop(),tiles[0].getHeight());
         boolean optical=false;
-        if(!quiet.getAsBoolean()&&android.os.Build.VERSION.SDK_INT>=33&&canvas.isHardwareAccelerated()){
+        // RuntimeShader is costly on a fast-moving path: use cached gradients in
+        // motion and reserve optical refraction for the settled selector.
+        if(!dragging&&(anim==null||!anim.isRunning())&&!quiet.getAsBoolean()&&android.os.Build.VERSION.SDK_INT>=33&&canvas.isHardwareAccelerated()){
             try{
                 if(!opticsTried){opticsTried=true;optics=new LensOptics();}
                 if(optics!=null){

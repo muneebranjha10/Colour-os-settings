@@ -623,12 +623,12 @@ final class Dashboard extends LinearLayout {
             int color=blend(WHITE,accent,coverage);
             if(modeLabels[j]!=null){
                 if(modeLabels[j].getCurrentTextColor()!=color)modeLabels[j].setTextColor(color);
-                float scale=!quietMode&&MotionUi.enabled()?1f+.018f*coverage:1f;
+                float scale=!quietMode&&MotionUi.enabled()?1f+.010f*coverage:1f;
                 if(Math.abs(modeLabels[j].getScaleX()-scale)>.002f){modeLabels[j].setScaleX(scale);modeLabels[j].setScaleY(scale);}
             }
             if(modeIcons[j]!=null){
                 if(modeIcons[j].color!=color){modeIcons[j].color=color;modeIcons[j].invalidate();}
-                float scale=!quietMode&&MotionUi.enabled()?1f+.045f*coverage:1f;
+                float scale=!quietMode&&MotionUi.enabled()?1f+.028f*coverage:1f;
                 if(Math.abs(modeIcons[j].getScaleX()-scale)>.002f){modeIcons[j].setScaleX(scale);modeIcons[j].setScaleY(scale);}
             }
         }

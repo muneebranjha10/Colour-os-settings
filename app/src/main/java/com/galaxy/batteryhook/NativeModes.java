@@ -91,7 +91,7 @@ final class NativeModes {
                 }
                 BatteryHook.log("requested "+mode+" active="+activeMode());
             }catch(Throwable t){BatteryHook.log("apply mode "+mode+": "+t);}
-            finally{lastQuery=0;main.postDelayed(()->{if(!closed)result.run();},350);}
+            finally{lastQuery=0;main.post(()->{if(!closed)result.run();});}
         });
     }
     void setLight(Runnable done){
@@ -103,7 +103,7 @@ final class NativeModes {
                 applyProfile(ReleaseRules.samsungProfileForLight());
                 BatteryHook.log("Light profile readback "+profile());
             }catch(Throwable t){BatteryHook.log("Light profile not applied: "+t);}
-            finally{lastQuery=0;main.postDelayed(()->{if(!closed)done.run();},350);}
+            finally{lastQuery=0;main.post(()->{if(!closed)done.run();});}
         });
     }
     private int samsungTime(int mode){

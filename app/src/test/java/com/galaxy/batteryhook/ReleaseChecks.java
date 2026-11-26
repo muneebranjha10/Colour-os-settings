@@ -70,8 +70,8 @@ public class ReleaseChecks {
     }
     @Test public void accentRemainsSeparateFromNeutralGlass(){assertTrue(ColorOsPalette.chroma(ColorOsPalette.ACCENT)>80);}
     @Test public void healthExitIsShortAndBounded(){assertEquals(219,PageMotion.healthExit(230,false));assertEquals(100,PageMotion.healthExit(230,true));assertEquals(480,PageMotion.healthExit(1000,false));assertEquals(140,PageMotion.healthExit(20,false));}
-    @Test public void smoothAndRelaxedAreSlowerThanOldTiming(){assertEquals(439,PageMotion.duration(360,1,false));assertEquals(576,PageMotion.duration(360,2,false));assertEquals(288,PageMotion.duration(360,0,false));assertEquals(180,PageMotion.duration(360,1,true));}
-    @Test public void glassHasGentleStartAndContinuousSettle(){assertTrue(GlassMath.railHead(.1f)<.1f);float old=0;for(int i=0;i<=100;i++){float t=i/100f;assertTrue(GlassMath.railHead(t)>=old);assertTrue(GlassMath.railHead(t)>=GlassMath.railTail(t)-.00001f);old=GlassMath.railHead(t);}assertEquals(1f,GlassMath.railTail(1),0f);}
+    @Test public void colorOsMotionPresetAvoidsUnnecessarySlowdown(){assertEquals(360,PageMotion.duration(360,1,false));assertEquals(461,PageMotion.duration(360,2,false));assertEquals(274,PageMotion.duration(360,0,false));assertEquals(180,PageMotion.duration(360,1,true));}
+    @Test public void glassRespondsImmediatelyAndSettles(){assertTrue(GlassMath.railHead(.1f)>.2f);float old=0;for(int i=0;i<=100;i++){float t=i/100f;assertTrue(GlassMath.railHead(t)>=old);assertTrue(GlassMath.railHead(t)>=GlassMath.railTail(t)-.00001f);old=GlassMath.railHead(t);}assertEquals(1f,GlassMath.railTail(1),0f);}
     @Test public void bracketedHealthFieldsStayDistinct(){HealthReader.Reading r=new HealthReader.Reading();HealthReader.parseDump(r,"mSavedBatteryAsoc: [91]\nmSavedBatteryBsoh: [95]","service");assertEquals(-1,r.asoc);assertEquals(91,r.savedAsoc);assertEquals(95,r.bsoh);r.api=93;assertEquals(93,r.main());}
     @Test public void liveSensorWinsWithoutInventingValue(){HealthReader.Reading r=new HealthReader.Reading();r.offerCycles(793,100,"sysfs");HealthReader.parseDump(r,"cycle_count: 800\nmSavedBatteryUsage: [90000]","service");HealthReader.resolveCycles(r);assertEquals(793,r.cycles);assertEquals("sysfs",r.cycleSource);}
     @Test public void newerReadCanReflectRealIncrement(){HealthReader.Reading a=new HealthReader.Reading(),b=new HealthReader.Reading();HealthReader.parseDump(a,"battery_cycle: 793","service");HealthReader.parseDump(b,"battery_cycle: 794","service");assertEquals(793,a.cycles);assertEquals(794,b.cycles);}
@@ -80,7 +80,22 @@ public class ReleaseChecks {
     @Test public void glassLabelsFollowVisualPosition(){assertEquals(1f,GlassMath.coverage(1,1),0f);assertEquals(0f,GlassMath.coverage(-1,0),0f);assertEquals(0f,GlassMath.coverage(1,0),0f);assertEquals(.5f,GlassMath.coverage(.5f,0),0f);assertEquals(.5f,GlassMath.coverage(.5f,1),0f);}
     @Test public void labelColorTransferIsContinuous(){float prev=0;for(int i=0;i<=100;i++){float v=GlassMath.coverage(i/100f,1);assertTrue(v>=prev);assertTrue(v-prev<.02f);assertEquals(1f,v+GlassMath.coverage(i/100f,0),.00001f);prev=v;}}
     @Test public void elasticDragTailFollowsWithoutLeading(){float prior=0;for(int i=0;i<30;i++){float next=GlassMath.dragFollower(prior,1,16);assertTrue(next>=prior&&next<=1);prior=next;}assertTrue(prior>.999f);assertTrue(GlassMath.dragFollower(1,0,16)>=0);}
-    @Test public void dragDeformationIsBounded(){assertEquals(.24f,GlassMath.dragFollower(1,0,1),.00001f);assertEquals(.76f,GlassMath.dragFollower(0,1,1),.00001f);assertEquals(0f,GlassMath.neckFraction(0),0);assertEquals(.23f,GlassMath.neckFraction(4),.00001f);}
+    @Test public void dragDeformationIsBounded(){assertEquals(1-GlassMath.followFraction(1),GlassMath.dragFollower(1,0,1),.00001f);assertEquals(GlassMath.followFraction(1),GlassMath.dragFollower(0,1,1),.00001f);assertEquals(0f,GlassMath.neckFraction(0),0);assertEquals(.10f,GlassMath.neckFraction(4),.00001f);}
     @Test public void elasticPulseReturnsToRest(){assertEquals(0f,GlassMath.elasticPulse(0),0);assertEquals(0f,GlassMath.elasticPulse(1),0);assertTrue(GlassMath.elasticPulse(.25f)>0);assertTrue(GlassMath.elasticPulse(.75f)<0);}
+    @Test public void gestureResponseBeatsSlowOriginalGlass(){
+        assertTrue(GlassMath.railHead(.15f)>.35f);
+        assertTrue(GlassMath.railTail(.15f)>0);
+        assertEquals(1f,GlassMath.railHead(1),0);
+        assertEquals(1f,GlassMath.railTail(1),0);
+        float lastHead=0,lastTail=0;
+        for(int i=0;i<=100;i++){
+            float t=i/100f;
+            float head=GlassMath.railHead(t),tail=GlassMath.railTail(t);
+            assertTrue(head>=tail);
+            assertTrue(head>=lastHead);
+            assertTrue(tail>=lastTail);
+            lastHead=head;lastTail=tail;
+        }
+    }
     @Test public void followerUsesElapsedTime(){assertEquals(GlassMath.followFraction(32),1-(1-GlassMath.followFraction(16))*(1-GlassMath.followFraction(16)),.00001f);}
 }
