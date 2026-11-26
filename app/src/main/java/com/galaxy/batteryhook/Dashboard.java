@@ -495,9 +495,9 @@ final class Dashboard extends LinearLayout {
         if((mode==0||mode==2)&&!engine.supportsLight()){
             if(lens!=null)lens.settle(engine.activeMode());
             Toast.makeText(a,"Direct profile switching unavailable on this firmware.",Toast.LENGTH_LONG).show();
-            return;
+            refreshProfile();return;
         }
-        if(mode==engine.activeMode()){if(lens!=null)lens.settle(mode);showMode(mode);return;}
+        if(mode==engine.activeMode()){if(lens!=null)lens.settle(mode);showMode(mode);refreshProfile();return;}
         busy=true;superSwitch.setEnabled(false);
         if(lens!=null)lens.settle(mode);
         for(LinearLayout tile:modes)tile.setEnabled(false);
