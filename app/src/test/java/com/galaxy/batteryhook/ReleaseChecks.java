@@ -27,9 +27,9 @@ public class ReleaseChecks {
         assertEquals(0,ReleaseRules.samsungProfileForStandard());
     }
     @Test public void standardIsNotOverclocking(){
-        assertEquals(0,ReleaseRules.samsungProfileForBalanced());
+        assertEquals(0,ReleaseRules.samsungProfileForStandard());
         assertEquals(1,ReleaseRules.samsungProfileForLight());
-        assertNotEquals(ReleaseRules.samsungProfileForBalanced(),ReleaseRules.samsungProfileForLight());
+        assertNotEquals(ReleaseRules.samsungProfileForStandard(),ReleaseRules.samsungProfileForLight());
     }
     @Test public void samsungProfileProbeRequiresRealFirmwareSignals(){
         assertTrue(ReleaseRules.canProbeLightProfile("samsung","com.samsung.android.lool",37,1));
