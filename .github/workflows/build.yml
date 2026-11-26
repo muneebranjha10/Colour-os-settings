@@ -93,7 +93,7 @@ jobs:
           native=(root/'NativeModes.java').read_text()
           glass=(root/'GlassRail.java').read_text()
           assert 'bar.setLevel(percent,plugged,engine.isSaving())' in dash
-          assert 'from=ColorOsPalette.mix(from,to,blend)' in (root/'LiquidBatteryBar.java').read_text()
+          assert 'oldColor=ColorOsPalette.mix(oldColor,newColor,colorMix)' in (root/'LiquidBatteryBar.java').read_text()
           assert 'lens.setPowerSavingTint(saving)' in dash
           assert 'canProbeLightProfile' in native
           assert 'Profile not confirmed' in native
@@ -111,12 +111,36 @@ jobs:
           telemetry=(root/'ChargeTelemetry.java').read_text()
           rules=(root/'ReleaseRules.java').read_text()
           assert 'void configure(int style,boolean glint,boolean flow)' in bar
-          assert 'postDelayed(frame,45)' in bar and 'onDetachedFromWindow(){stop()' in bar
+          assert 'postDelayed(frame,45)' not in bar and 'onDetachedFromWindow(){stopAnimations()' in bar
           assert 'Battery bar studio' in dash and 'Battery tools' in dash and 'Wattage accuracy' in dash
           assert 'bar.setLevel(percent,plugged,engine.isSaving())' in dash
           assert 'publishPower(smooth,r.charging,r.full,r.uncertain)' in telemetry
           assert 'static boolean publishPower(' in rules
           print('Gauge lifecycle, submenus and reliable watts verified')
+          PY
+      - name: Verify reference bar and self-imported OPPO Sans font
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('app/src/main/java/com/galaxy/batteryhook')
+          bar=(root/'LiquidBatteryBar.java').read_text()
+          dash=(root/'Dashboard.java').read_text()
+          fonts=(root/'FontStore.java').read_text()
+          hook=(root/'BatteryHook.java').read_text()
+          assert 'ColorOS reference' in dash
+          assert 'fontOptions()' in dash
+          assert 'FontStore.get(a)' in dash
+          assert 'ACTION_OPEN_DOCUMENT' in dash
+          assert 'installFontPickerHook' in hook
+          assert 'REQUEST=8143' in fonts
+          assert 'importFromDocument(Context c,Uri uri)' in fonts
+          assert '32 MB' in fonts
+          assert 'getWindowVisibility()' not in bar
+          assert 'onWindowFocusChanged(boolean focus)' in bar
+          assert 'oldColor=newColor;colorMix=1f;sweep=1f' in bar
+          assert 'new LinearGradient(' in bar
+          assert 'SystemClock' not in bar
+          print('Verified clean reference bar, no permanent animation, and local-only font import')
           PY
       - name: Verify synchronized animation wiring
         run: |
@@ -152,18 +176,18 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC12.apk
+          cp "$APK" ColourOS-Battery-RC13.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC12.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-RC13.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC12-APK
+          name: GalaxyBattery-RC13-APK
           path: |
-            ColourOS-Battery-RC12.apk
+            ColourOS-Battery-RC13.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc12-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC12.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC12 | Made by Muneeb" --notes-file docs/RELEASE-RC12.md --prerelease
+          TAG=rc13-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC13.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC13 | Made by Muneeb" --notes-file docs/RELEASE-RC13.md --prerelease

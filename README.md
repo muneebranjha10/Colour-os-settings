@@ -53,6 +53,12 @@ Classic green glass, original emerald and neutral silver options; Smooth motion 
 
 Glass selection and icon/label colors now follow the same visual clock; real settings confirmation still determines the logical selected mode. Cached gradients avoid per-frame shader matrix changes and the secondary dialog content animation was removed. The first RC9 launch migrates saved Fast to Smooth (Fast remains selectable). Native pages retain their OS transitions. All Samsung Galaxy models are targeted, compatibility remains in testing.
 
+### RC13 Reference-inspired ColorOS fidelity
+The charging battery bar is rebuilt against a user-provided ColorOS screen recording and public OPPO battery-page examples. At rest it is **solid and sharp**, with rounded ends and measured fill only. Its charging blue is calibrated from the original clip, with a similarly clean green and warm power-saving yellow. There is no fake constantly looping wave. The bar fills with a short ease and crossfades color on **verified** Android battery/state updates. An optional polished look offers a brief reflection after transitions; no animation loop is left active while idle. The bar's colors/shapes approximate the reference, but are not an authorized or binary-exact port of ColorOS's UI.
+
+OPPO officially offers **OPPO Sans 4.0** under terms that allow free usage but prohibit alternative font-download channels. This module does not bundle or redistribute the font. Use **Custom features → OPPO Sans 4.0 font → Open OPPO's official font page**, download there, and **Import official font file** using Android's document picker. The selected TTF/OTF file is validated and stored locally in Samsung Device Care app data. It applies across our dashboard, health, and protection surfaces; native Samsung pages retain their own typography. Default fallback is the device system font.
+Reference: https://www.coloros.com/article/A00000074/
+
 ### RC12 Liquid battery bar and tools
 The battery bar is now a separate lightweight renderer with three selectable styles: Crystal glow, Liquid wave and Clean minimal. Its animated highlight, flowing crest and state-change flash stay clipped inside the real measured battery percentage. Animated fill and ColorOS green/yellow/blue transitions use short value animators; the charging loop runs only while the Battery page has focus, and stops in Low Power UI. The new **Battery bar studio**, **Battery tools** and **Wattage accuracy** submenus are in Custom features.
 
@@ -76,7 +82,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC12 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC13 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
