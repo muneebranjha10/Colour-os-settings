@@ -22,6 +22,10 @@ public class ReleaseChecks {
     @Test public void wattsDoesNotOverflow(){assertEquals(12.0,ReleaseRules.watts(3000000,4000),.00001);}
     @Test public void rejectsInvalidPowerSamples(){assertTrue(Double.isNaN(ReleaseRules.watts(-1,4000)));assertTrue(Double.isNaN(ReleaseRules.watts(1000000,100)));assertTrue(Double.isNaN(ReleaseRules.watts(Double.NaN,4000)));}
     @Test public void knownProtectionRangeOnly(){for(int n=80;n<=95;n+=5)assertTrue(ReleaseRules.supportsProtection(36,1,n));assertFalse(ReleaseRules.supportsProtection(35,1,80));assertFalse(ReleaseRules.supportsProtection(37,1,100));assertFalse(ReleaseRules.supportsProtection(37,4,90));}
+    @Test public void directProfileSwitchUsesTwoFirmwareValues(){
+        assertEquals(1,ReleaseRules.samsungProfileForLight());
+        assertEquals(0,ReleaseRules.samsungProfileForBalanced());
+    }
     @Test public void standardIsBalancedNotPerformanceBoost(){
         assertEquals(0,ReleaseRules.samsungProfileForBalanced());
         assertEquals(1,ReleaseRules.samsungProfileForLight());

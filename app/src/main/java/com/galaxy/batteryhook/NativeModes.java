@@ -49,9 +49,10 @@ final class NativeModes {
     boolean supportsLight(){return lightSupported;}
     boolean isSaving(){try{return pm!=null&&pm.isPowerSaveMode();}catch(Throwable e){return false;}}
     private int profile(){try{return Settings.Global.getInt(a.getContentResolver(),"sem_low_heat_mode",-1);}catch(Throwable e){return -1;}}
-    int normalMode(){return 0;}
-    // Standard is the default Balanced profile, not a performance boost.
-    int activeMode(){if(isSaving())return 1;return profile()==1?-1:0;}
+    int normalMode(){return profile()==1?0:2;}
+    int profileIndex(){int p=profile();return p==1?0:p==0?1:-1;}
+    // The tested Galaxy S23 offers two real profiles: Light and Standard.
+    int activeMode(){if(isSaving())return 1;int p=profile();return p==1?0:p==0?2:-1;}
     boolean isLightProfile(){return !isSaving()&&profile()==1;}
     boolean needsManualStandard(){return profile()==1&&!lightSupported;}
     private static Object callStatic(Class<?> c,String name,Class<?>[] args,Object... values)throws Exception{Method m=c.getDeclaredMethod(name,args);m.setAccessible(true);return m.invoke(null,values);}
@@ -81,11 +82,13 @@ final class NativeModes {
             try{
                 if(mode==1)power(true);
                 else if(mode==0){
-                    power(false);
-                    if(lightSupported)applyProfile(ReleaseRules.samsungProfileForBalanced());
-                    else if(profile()==1)throw new UnsupportedOperationException("Open native Samsung profile to restore Standard");
+                    if(!lightSupported)throw new UnsupportedOperationException("Light profile helper unavailable");
+                    power(false);applyProfile(ReleaseRules.samsungProfileForLight());
                 }
-                else if(mode==2)throw new UnsupportedOperationException("Performance routes to native controls");
+                else if(mode==2){
+                    if(!lightSupported)throw new UnsupportedOperationException("Standard profile helper unavailable");
+                    power(false);applyProfile(ReleaseRules.samsungProfileForBalanced());
+                }
                 BatteryHook.log("requested "+mode+" active="+activeMode());
             }catch(Throwable t){BatteryHook.log("apply mode "+mode+": "+t);}
             finally{lastQuery=0;main.postDelayed(()->{if(!closed)result.run();},350);}
@@ -130,13 +133,14 @@ final class NativeModes {
         if(closed||estimating||(lastQuery!=0&&now-lastQuery<10000))return;
         estimating=true;lastQuery=now;
         worker.execute(()->{
-            String[] values={"Learning…","Unavailable","Open settings"};
+            String[] values={"Learning…","Unavailable","Learning…"};
             try{
                 int active=activeMode(),charge=chargeCounter();sample(active);
                 int regular=samsungTime(0),saver=samsungTime(1);
                 values[1]=format(saver>0?saver:measured(1,charge));
-                int normalDischarge=measured(0,charge);
-                values[0]=format(normalDischarge>0?normalDischarge:regular);
+                int standardDischarge=measured(2,charge);
+                values[2]=format(standardDischarge>0?standardDischarge:regular);
+                values[0]=format(measured(0,charge));
             }catch(Throwable t){BatteryHook.log("estimate: "+t);}
             final String[] display=values;
             main.post(()->{estimating=false;if(!closed)callback.display(display);});
