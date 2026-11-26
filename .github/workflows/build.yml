@@ -24,15 +24,15 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Require at least forty-two regression checks
+      - name: Require at least 44 regression checks
         run: |
           python3 - <<'PY'
           import glob,xml.etree.ElementTree as E
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           suites=[E.parse(f).getroot() for f in files]
-          assert sum(int(s.get('tests',0)) for s in suites)>=42
+          assert sum(int(s.get('tests',0)) for s in suites)>=44
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
-          print('Forty-two or more regression checks passed')
+          print('44 or more regression checks passed')
           PY
       - name: Verify glass touch wiring
         run: |
@@ -186,6 +186,28 @@ jobs:
           assert 'SystemClock' not in bar
           print('Verified clean reference bar, no permanent animation, and local-only font import')
           PY
+      - name: Verify ColorOS-responsive animation geometry and scheduling
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('app/src/main/java/com/galaxy/batteryhook')
+          rail=(root/'GlassRail.java').read_text()
+          math=(root/'GlassMath.java').read_text()
+          timing=(root/'PageMotion.java').read_text()
+          native=(root/'NativeModes.java').read_text()
+          dash=(root/'Dashboard.java').read_text()
+          assert 'anim.setDuration(Math.min(350' in rail
+          assert 'Math.abs(next-startSlot)>1.1f?245:195' in rail
+          assert 'float x=xAt(slot),tileWidth=widthAt(slot)' in rail
+          assert 'Math.min(dp(8),Math.abs(lag)*tileWidth*.18f)' in rail
+          assert '!dragging&&(anim==null||!anim.isRunning())' in rail
+          assert 'Math.exp(-Math.max(0,elapsedMs)/22f)' in math
+          assert 'style==0?.76f:style==2?1.28f:1f' in timing
+          assert 'main.postDelayed(()->{if(!closed)result.run();},350)' not in native
+          assert 'main.post(()->{if(!closed)result.run();});' in native
+          assert 'Fast · responsive' in dash
+          print('Short touch response, limited stretch, fast profile confirmation and no moving-shader load')
+          PY
       - name: Verify synchronized animation wiring
         run: |
           python3 - <<'PY'
@@ -220,18 +242,18 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC15.apk
+          cp "$APK" ColourOS-Battery-RC16.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC15.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-RC16.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC15-APK
+          name: GalaxyBattery-RC16-APK
           path: |
-            ColourOS-Battery-RC15.apk
+            ColourOS-Battery-RC16.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc15-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC15.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC15 | Made by Muneeb" --notes-file docs/RELEASE-RC15.md --prerelease
+          TAG=rc16-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC16.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC16 | Made by Muneeb" --notes-file docs/RELEASE-RC16.md --prerelease

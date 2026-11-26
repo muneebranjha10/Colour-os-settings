@@ -53,6 +53,13 @@ Classic green glass, original emerald and neutral silver options; Smooth motion 
 
 Glass selection and icon/label colors now follow the same visual clock; real settings confirmation still determines the logical selected mode. Cached gradients avoid per-frame shader matrix changes and the secondary dialog content animation was removed. The first RC9 launch migrates saved Fast to Smooth (Fast remains selectable). Native pages retain their OS transitions. All Samsung Galaxy models are targeted, compatibility remains in testing.
 
+### RC16 — Faster, clearer ColorOS-inspired motion
+Based on a fresh ~6.3-second user screen recording of RC15, the two glass selectors were taking too long and stretching across multiple tile cards. RC16 keeps **one filled moving capsule**, with a capped ~8dp moving lip instead of joining the entire head/tail bounding rectangle. The animation responds early and settles quickly: nominal **195 ms for adjacent tiles** and **245 ms for larger jumps**, scaled by the selected animation speed and capped at **350 ms**. The default ColorOS Flow preset now uses 1× motion duration instead of 1.22×. Label/icon feedback is subtler.
+
+The fast-moving capsule uses cached Canvas gradients, reserving Android RuntimeShader optical refraction for the static selector, improving frame consistency on 60/120 Hz devices when hardware permits. Finger-drag tail following is tightened and the mode-confirmation callback no longer waits an extra 350 ms after the firmware readback. Existing reduced-motion, battery-saver UI, charging/protection safety and original Samsung fallback are preserved.
+
+**Scope of the claim:** this is a motion-tuned **ColorOS-inspired reproduction**, not an exact extract of OPPO's proprietary Luminous Rendering Engine. ColorOS 17 describes Living Flow Design as balancing motion, responsive feedback and rendering smoothness: https://www.oppo.com/en/newsroom/stories/oppo-color-os-17-smooth/ . Actual frame-rate smoothness must be tested on devices.
+
 ### RC15 Direct Samsung profile switching and inline performance card
 The three top buttons are actionable again. On Galaxy firmware that exposes the verified Samsung Device Care profile helper, **Balanced** selects Samsung **Light** (lower processing power and reduced heat), **Power saving** enables the built-in saver, and **Performance** selects Samsung **Standard**, the normal unrestricted profile. The last mode is **not an extra overclock or gaming-performance boost**: Samsung's native Performance profile offers only Light and Standard on the original S23, and only their confirmed settings are used. All profile writes use the same read-verified Device Care helper and show actual firmware state, reverting the visual choice if confirmation fails; on unsupported phones the profile controls do not claim success.
 
@@ -94,7 +101,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC15 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC16 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -120,7 +127,7 @@ Balanced behavior varies by firmware. RC14 uses Samsung Standard as its default 
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs at least forty-two automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs at least 44 automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 
