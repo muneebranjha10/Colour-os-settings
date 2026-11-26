@@ -24,9 +24,9 @@ public class ReleaseChecks {
     @Test public void knownProtectionRangeOnly(){for(int n=80;n<=95;n+=5)assertTrue(ReleaseRules.supportsProtection(36,1,n));assertFalse(ReleaseRules.supportsProtection(35,1,80));assertFalse(ReleaseRules.supportsProtection(37,1,100));assertFalse(ReleaseRules.supportsProtection(37,4,90));}
     @Test public void directProfileSwitchUsesTwoFirmwareValues(){
         assertEquals(1,ReleaseRules.samsungProfileForLight());
-        assertEquals(0,ReleaseRules.samsungProfileForBalanced());
+        assertEquals(0,ReleaseRules.samsungProfileForStandard());
     }
-    @Test public void standardIsBalancedNotPerformanceBoost(){
+    @Test public void standardIsNotOverclocking(){
         assertEquals(0,ReleaseRules.samsungProfileForBalanced());
         assertEquals(1,ReleaseRules.samsungProfileForLight());
         assertNotEquals(ReleaseRules.samsungProfileForBalanced(),ReleaseRules.samsungProfileForLight());
@@ -44,6 +44,12 @@ public class ReleaseChecks {
         assertEquals(0xffffae13,ReleaseRules.batteryBarColor(true,true));
         assertEquals(0xff198bfe,ReleaseRules.batteryBarColor(true,false));
         assertEquals(0xff22ce37,ReleaseRules.batteryBarColor(false,false));
+    }
+    @Test public void nativeProfileToTileMapping(){
+        assertEquals(0,ReleaseRules.modeForSamsungProfile(1));
+        assertEquals(2,ReleaseRules.modeForSamsungProfile(0));
+        assertEquals(-1,ReleaseRules.modeForSamsungProfile(-1));
+        assertEquals(-1,ReleaseRules.modeForSamsungProfile(3));
     }
     @Test public void customSettingsBounds(){assertEquals(0,ReleaseRules.clampOption(-7));assertEquals(2,ReleaseRules.clampOption(100));assertEquals(1,ReleaseRules.clampOption(1));}
     @Test public void morphEndpointsAreExact(){assertEquals(0f,LiquidMotion.leading(0),0);assertEquals(0f,LiquidMotion.trailing(0),0);assertEquals(1f,LiquidMotion.leading(1),0);assertEquals(1f,LiquidMotion.trailing(1),0);}

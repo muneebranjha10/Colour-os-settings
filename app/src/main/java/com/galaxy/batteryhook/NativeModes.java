@@ -52,7 +52,7 @@ final class NativeModes {
     int normalMode(){return profile()==1?0:2;}
     int profileIndex(){int p=profile();return p==1?0:p==0?1:-1;}
     // The tested Galaxy S23 offers two real profiles: Light and Standard.
-    int activeMode(){if(isSaving())return 1;int p=profile();return p==1?0:p==0?2:-1;}
+    int activeMode(){if(isSaving())return 1;return ReleaseRules.modeForSamsungProfile(profile());}
     boolean isLightProfile(){return !isSaving()&&profile()==1;}
     boolean needsManualStandard(){return profile()==1&&!lightSupported;}
     private static Object callStatic(Class<?> c,String name,Class<?>[] args,Object... values)throws Exception{Method m=c.getDeclaredMethod(name,args);m.setAccessible(true);return m.invoke(null,values);}
@@ -87,7 +87,7 @@ final class NativeModes {
                 }
                 else if(mode==2){
                     if(!lightSupported)throw new UnsupportedOperationException("Standard profile helper unavailable");
-                    power(false);applyProfile(ReleaseRules.samsungProfileForBalanced());
+                    power(false);applyProfile(ReleaseRules.samsungProfileForStandard());
                 }
                 BatteryHook.log("requested "+mode+" active="+activeMode());
             }catch(Throwable t){BatteryHook.log("apply mode "+mode+": "+t);}
