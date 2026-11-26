@@ -31,10 +31,10 @@ public class ReleaseChecks {
         assertFalse(ReleaseRules.canProbeLightProfile("samsung","com.samsung.android.lool",38,1));
     }
     @Test public void saverHasPriorityOverChargingColor(){
-        assertEquals(0xffffca37,ReleaseRules.batteryBarColor(false,true));
-        assertEquals(0xffffca37,ReleaseRules.batteryBarColor(true,true));
-        assertEquals(0xff168cf4,ReleaseRules.batteryBarColor(true,false));
-        assertEquals(0xff17db26,ReleaseRules.batteryBarColor(false,false));
+        assertEquals(0xffffae13,ReleaseRules.batteryBarColor(false,true));
+        assertEquals(0xffffae13,ReleaseRules.batteryBarColor(true,true));
+        assertEquals(0xff198bfe,ReleaseRules.batteryBarColor(true,false));
+        assertEquals(0xff22ce37,ReleaseRules.batteryBarColor(false,false));
     }
     @Test public void customSettingsBounds(){assertEquals(0,ReleaseRules.clampOption(-7));assertEquals(2,ReleaseRules.clampOption(100));assertEquals(1,ReleaseRules.clampOption(1));}
     @Test public void morphEndpointsAreExact(){assertEquals(0f,LiquidMotion.leading(0),0);assertEquals(0f,LiquidMotion.trailing(0),0);assertEquals(1f,LiquidMotion.leading(1),0);assertEquals(1f,LiquidMotion.trailing(1),0);}

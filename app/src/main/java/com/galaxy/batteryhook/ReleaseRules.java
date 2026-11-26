@@ -21,7 +21,7 @@ final class ReleaseRules {
           &&((charging&&watts>=.5)||(full&&watts<=.5));
     }
     static int batteryBarColor(boolean plugged,boolean saving){
-        return saving?0xffffca37:plugged?0xff168cf4:0xff17db26;
+        return saving?0xffffae13:plugged?0xff198bfe:0xff22ce37;
     }
     static boolean supportsProtection(int api,int mode,int limit){return (api==36||api==37)&&(mode==0||mode==1||mode==3)&&limit>=80&&limit<=95&&limit%5==0;}
 }
