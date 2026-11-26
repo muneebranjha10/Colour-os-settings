@@ -36,6 +36,11 @@ public class ReleaseChecks {
     @Test public void sliderMirrorsRtl(){assertEquals(0f,GlassMath.thumbFraction(0,false),0);assertEquals(1f,GlassMath.thumbFraction(0,true),0);assertEquals(.5f,GlassMath.thumbFraction(150,true),0);assertEquals(0f,GlassMath.thumbFraction(300,true),0);}
     @Test public void springHasExactEndpointsAndBoundedLeadingEdge(){assertEquals(0f,GlassMath.railHead(0),0);assertEquals(1f,GlassMath.railHead(1),0);assertEquals(1f,GlassMath.railTail(1),0);for(int i=0;i<=100;i++)assertTrue(GlassMath.railHead(i/100f)<=1.035f);}
     @Test public void silverRemainsNeutralAndClassicIsRestrained(){for(int c:ColorOsPalette.body(0))assertTrue(ColorOsPalette.chroma(c)<=6);for(int c:ColorOsPalette.body(1))assertTrue(ColorOsPalette.chroma(c)<=40);assertTrue(ColorOsPalette.chroma(ColorOsPalette.body(2)[0])>40);assertEquals(0xff5aa866,ColorOsPalette.body(2)[0]);}
+    @Test public void powerTintBlendHasCorrectEndpoints(){
+        assertEquals(ColorOsPalette.ACCENT,ColorOsPalette.mix(ColorOsPalette.ACCENT,0xffffcc35,0f));
+        assertEquals(0xffffcc35,ColorOsPalette.mix(ColorOsPalette.ACCENT,0xffffcc35,1f));
+        assertEquals(0xffffcc35,ColorOsPalette.mix(ColorOsPalette.ACCENT,0xffffcc35,10f));
+    }
     @Test public void accentRemainsSeparateFromNeutralGlass(){assertTrue(ColorOsPalette.chroma(ColorOsPalette.ACCENT)>80);}
     @Test public void healthExitIsShortAndBounded(){assertEquals(219,PageMotion.healthExit(230,false));assertEquals(100,PageMotion.healthExit(230,true));assertEquals(480,PageMotion.healthExit(1000,false));assertEquals(140,PageMotion.healthExit(20,false));}
     @Test public void smoothAndRelaxedAreSlowerThanOldTiming(){assertEquals(439,PageMotion.duration(360,1,false));assertEquals(576,PageMotion.duration(360,2,false));assertEquals(288,PageMotion.duration(360,0,false));assertEquals(180,PageMotion.duration(360,1,true));}
