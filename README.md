@@ -53,8 +53,13 @@ Classic green glass, original emerald and neutral silver options; Smooth motion 
 
 Glass selection and icon/label colors now follow the same visual clock; real settings confirmation still determines the logical selected mode. Cached gradients avoid per-frame shader matrix changes and the secondary dialog content animation was removed. The first RC9 launch migrates saved Fast to Smooth (Fast remains selectable). Native pages retain their OS transitions. All Samsung Galaxy models are targeted, compatibility remains in testing.
 
+### RC15 Direct Samsung profile switching and inline performance card
+The three top buttons are actionable again. On Galaxy firmware that exposes the verified Samsung Device Care profile helper, **Balanced** selects Samsung **Light** (lower processing power and reduced heat), **Power saving** enables the built-in saver, and **Performance** selects Samsung **Standard**, the normal unrestricted profile. The last mode is **not an extra overclock or gaming-performance boost**: Samsung's native Performance profile offers only Light and Standard on the original S23, and only their confirmed settings are used. All profile writes use the same read-verified Device Care helper and show actual firmware state, reverting the visual choice if confirmation fails; on unsupported phones the profile controls do not claim success.
+
+An **inline Performance profile** card now shows a glass sliding selector with two buttons, Light and Standard, mirroring the existing Standard / Fast charging card. Both support taps and horizontal swipes. The updated **Power profiles** submenu also directly selects Light or Standard and continues to provide Samsung's advanced processing and power-saving settings. The original Samsung page is preserved.
+
 ### RC14 Mode accuracy and cleaner ColorOS-style motion
-Removed the long technical sentence below the three mode tiles. The old **Balanced = Light** and **Performance = Standard** wording and behavior could misrepresent Samsung's operating modes: Samsung describes Standard as the everyday default, and Light as the lower-power profile. **Balanced now restores Standard** where the native Samsung helper supports a verified profile change; on unsupported devices it switches off Power saving and directs existing Light users to native Samsung profile controls when needed. **Power saving** continues to use Samsung's verified saver. The third tile is **Performance settings**, a shortcut to Samsung Enhanced processing if exposed, otherwise the Samsung Performance profile page; it never claims to overclock or confirms a nonexistent boost. **Light** is selectable separately through Custom features → Power profiles, and Samsung readback confirms it. If Light is active, the three-mode selector does not falsely highlight Balanced.
+Removed the long technical sentence below the three mode tiles. The old **Balanced = Light** and **Performance = Standard** wording and behavior could misrepresent Samsung's operating modes: Samsung describes Standard as the everyday default, and Light as the lower-power profile. **Balanced now selects Light** where the native Samsung helper supports a verified profile change; on unsupported devices it switches off Power saving and directs existing Light users to native Samsung profile controls when needed. **Power saving** continues to use Samsung's verified saver. The third tile is **Performance settings**, a shortcut to Samsung Enhanced processing if exposed, otherwise the Samsung Performance profile page; it never claims to overclock or confirms a nonexistent boost. **Light** is selectable separately through Custom features → Power profiles, and Samsung readback confirms it. If Light is active, the three-mode selector does not falsely highlight Balanced.
 
 The new **Power profiles**, **Charging controls**, and organized **Battery tools** submenus expose Standard/Light settings, enhanced processing, the native charging mode switch (Standard or Fast/Super fast together), fast wireless charging, battery protection, diagnostics, and the existing alerts. Charging speed remains charger- and firmware-dependent; features that are unsupported open native Samsung settings.
 
@@ -89,7 +94,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC14 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC15 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -115,7 +120,7 @@ Balanced behavior varies by firmware. RC14 uses Samsung Standard as its default 
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs at least forty automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs at least forty-two automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 
