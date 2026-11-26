@@ -53,6 +53,13 @@ Classic green glass, original emerald and neutral silver options; Smooth motion 
 
 Glass selection and icon/label colors now follow the same visual clock; real settings confirmation still determines the logical selected mode. Cached gradients avoid per-frame shader matrix changes and the secondary dialog content animation was removed. The first RC9 launch migrates saved Fast to Smooth (Fast remains selectable). Native pages retain their OS transitions. All Samsung Galaxy models are targeted, compatibility remains in testing.
 
+### RC14 Mode accuracy and cleaner ColorOS-style motion
+Removed the long technical sentence below the three mode tiles. The old **Balanced = Light** and **Performance = Standard** wording and behavior could misrepresent Samsung's operating modes: Samsung describes Standard as the everyday default, and Light as the lower-power profile. **Balanced now restores Standard** where the native Samsung helper supports a verified profile change; on unsupported devices it switches off Power saving and directs existing Light users to native Samsung profile controls when needed. **Power saving** continues to use Samsung's verified saver. The third tile is **Performance settings**, a shortcut to Samsung Enhanced processing if exposed, otherwise the Samsung Performance profile page; it never claims to overclock or confirms a nonexistent boost. **Light** is selectable separately through Custom features → Power profiles, and Samsung readback confirms it. If Light is active, the three-mode selector does not falsely highlight Balanced.
+
+The new **Power profiles**, **Charging controls**, and organized **Battery tools** submenus expose Standard/Light settings, enhanced processing, the native charging mode switch (Standard or Fast/Super fast together), fast wireless charging, battery protection, diagnostics, and the existing alerts. Charging speed remains charger- and firmware-dependent; features that are unsupported open native Samsung settings.
+
+Glass selector movement has smoother damping and slight synchronized icon/label emphasis; reduced-motion and Low Power UI preserve simplified transitions. This is a ColorOS-inspired recreation, not an exact port of OPPO's proprietary animation implementation.
+
 ### RC13 Reference-inspired ColorOS fidelity
 The charging battery bar is rebuilt against a user-provided ColorOS screen recording and public OPPO battery-page examples. At rest it is **solid and sharp**, with rounded ends and measured fill only. Its charging blue is calibrated from the original clip, with a similarly clean green and warm power-saving yellow. There is no fake constantly looping wave. The bar fills with a short ease and crossfades color on **verified** Android battery/state updates. An optional polished look offers a brief reflection after transitions; no animation loop is left active while idle. The bar's colors/shapes approximate the reference, but are not an authorized or binary-exact port of ColorOS's UI.
 
@@ -82,7 +89,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC13 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC14 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -100,7 +107,7 @@ If the APK cannot update because of a signature mismatch, uninstall the previous
 - To return to the original interface, use the overflow menu or disable the module and reboot.
 - When reporting a bug, include your Galaxy model, Android/One UI version, Device Care version, steps to reproduce, and relevant LSPosed logs with personal data removed.
 
-Balanced-mode behavior varies by firmware; RC11 verifies support before changing Samsung Light/Standard profiles, and a separate Standard profile is not available on every model. User-selected Samsung settings are not reset by uninstalling the module.
+Balanced behavior varies by firmware. RC14 uses Samsung Standard as its default Balanced profile and separates Light as a supported optional setting; Enhanced processing may be missing on some models. User-selected Samsung settings are not reset by uninstalling the module.
 
 ## Build & verification
 
@@ -108,7 +115,7 @@ Balanced-mode behavior varies by firmware; RC11 verifies support before changing
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs thirty-nine automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs at least forty automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 

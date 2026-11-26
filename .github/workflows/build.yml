@@ -24,15 +24,15 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Require all thirty-nine regression checks
+      - name: Require at least forty regression checks
         run: |
           python3 - <<'PY'
           import glob,xml.etree.ElementTree as E
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           suites=[E.parse(f).getroot() for f in files]
-          assert sum(int(s.get('tests',0)) for s in suites)>=39
+          assert sum(int(s.get('tests',0)) for s in suites)>=40
           assert sum(int(s.get(k,0)) for s in suites for k in ('failures','errors','skipped'))==0
-          print('Thirty-nine or more regression checks passed')
+          print('Forty or more regression checks passed')
           PY
       - name: Verify glass touch wiring
         run: |
@@ -97,9 +97,32 @@ jobs:
           assert 'lens.setPowerSavingTint(saving)' in dash
           assert 'canProbeLightProfile' in native
           assert 'Profile not confirmed' in native
-          assert 'if(mode==2&&!engine.supportsLight())' in dash
+          assert 'if(mode==2){if(lens!=null)lens.settle(engine.activeMode());performanceSettings();return;}' in dash
           assert 'setPowerSavingTint(boolean enabled)' in glass
           print('Verified state-aware saver yellow and native performance fallback')
+          PY
+      - name: Verify corrected Balanced, Light and submenus
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/java/com/galaxy/batteryhook')
+          dash=(p/'Dashboard.java').read_text()
+          native=(p/'NativeModes.java').read_text()
+          rules=(p/'ReleaseRules.java').read_text()
+          assert 'Balanced: Samsung Light · Performance: Samsung Standard' not in dash
+          assert 'modeExplanation=' not in dash
+          assert 'Power profiles' in dash and 'Charging controls' in dash
+          assert 'powerProfilesMenu()' in dash and 'chargingControlsMenu()' in dash
+          assert 'chooseLight()' in dash and 'selectChargingPolicy(1)' in dash
+          assert 'modeNotes[j].setText(j==2?"Open settings"' in dash
+          assert 'int normalMode(){return 0;}' in native
+          assert 'return profile()==1?-1:0;' in native
+          assert 'if(lightSupported)applyProfile(ReleaseRules.samsungProfileForBalanced())' in native
+          assert 'applyProfile(ReleaseRules.samsungProfileForLight())' in native
+          assert 'static int samsungProfileForBalanced(){return 0;}' in rules
+          assert 'static int samsungProfileForLight(){return 1;}' in rules
+          assert 'int confirmed=engine.activeMode()' in dash
+          print('Balanced uses Standard, Light stays distinct, submenus and readback verified')
           PY
       - name: Verify battery bar effects and watt confidence
         run: |
@@ -176,18 +199,18 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
           unzip -p "$APK" assets/xposed_init | grep -Fx com.galaxy.batteryhook.BatteryHook
-          cp "$APK" ColourOS-Battery-RC13.apk
+          cp "$APK" ColourOS-Battery-RC14.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-icon"
-          sha256sum ColourOS-Battery-RC13.apk > SHA256SUMS.txt
+          sha256sum ColourOS-Battery-RC14.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBattery-RC13-APK
+          name: GalaxyBattery-RC14-APK
           path: |
-            ColourOS-Battery-RC13.apk
+            ColourOS-Battery-RC14.apk
             SHA256SUMS.txt
       - name: Publish test APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=rc13-${GITHUB_RUN_ID}
-          gh release create "$TAG" ColourOS-Battery-RC13.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC13 | Made by Muneeb" --notes-file docs/RELEASE-RC13.md --prerelease
+          TAG=rc14-${GITHUB_RUN_ID}
+          gh release create "$TAG" ColourOS-Battery-RC14.apk SHA256SUMS.txt --target "$GITHUB_SHA" --title "ColourOS Battery v1.1 RC14 | Made by Muneeb" --notes-file docs/RELEASE-RC14.md --prerelease
