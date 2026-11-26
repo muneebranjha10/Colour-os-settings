@@ -10,7 +10,20 @@ public class ReleaseChecks {
     @Test public void wattsDoesNotOverflow(){assertEquals(12.0,ReleaseRules.watts(3000000,4000),.00001);}
     @Test public void rejectsInvalidPowerSamples(){assertTrue(Double.isNaN(ReleaseRules.watts(-1,4000)));assertTrue(Double.isNaN(ReleaseRules.watts(1000000,100)));assertTrue(Double.isNaN(ReleaseRules.watts(Double.NaN,4000)));}
     @Test public void knownProtectionRangeOnly(){for(int n=80;n<=95;n+=5)assertTrue(ReleaseRules.supportsProtection(36,1,n));assertFalse(ReleaseRules.supportsProtection(35,1,80));assertFalse(ReleaseRules.supportsProtection(37,1,100));assertFalse(ReleaseRules.supportsProtection(37,4,90));}
-    @Test public void unknownModelsNeverCallObfuscatedHelpers(){assertTrue(ReleaseRules.testedHelperFamily("SM-S911B",37));assertFalse(ReleaseRules.testedHelperFamily("SM-S928B",37));assertFalse(ReleaseRules.testedHelperFamily("SM-S911B",35));}
+    @Test public void samsungProfileProbeRequiresRealFirmwareSignals(){
+        assertTrue(ReleaseRules.canProbeLightProfile("samsung","com.samsung.android.lool",37,1));
+        assertTrue(ReleaseRules.canProbeLightProfile("SAMSUNG","com.samsung.android.lool",35,0));
+        assertFalse(ReleaseRules.canProbeLightProfile("google","com.samsung.android.lool",37,1));
+        assertFalse(ReleaseRules.canProbeLightProfile("samsung","com.android.settings",37,1));
+        assertFalse(ReleaseRules.canProbeLightProfile("samsung","com.samsung.android.lool",37,-1));
+        assertFalse(ReleaseRules.canProbeLightProfile("samsung","com.samsung.android.lool",38,1));
+    }
+    @Test public void saverHasPriorityOverChargingColor(){
+        assertEquals(0xffffca37,ReleaseRules.batteryBarColor(false,true));
+        assertEquals(0xffffca37,ReleaseRules.batteryBarColor(true,true));
+        assertEquals(0xff168cf4,ReleaseRules.batteryBarColor(true,false));
+        assertEquals(0xff17db26,ReleaseRules.batteryBarColor(false,false));
+    }
     @Test public void customSettingsBounds(){assertEquals(0,ReleaseRules.clampOption(-7));assertEquals(2,ReleaseRules.clampOption(100));assertEquals(1,ReleaseRules.clampOption(1));}
     @Test public void morphEndpointsAreExact(){assertEquals(0f,LiquidMotion.leading(0),0);assertEquals(0f,LiquidMotion.trailing(0),0);assertEquals(1f,LiquidMotion.leading(1),0);assertEquals(1f,LiquidMotion.trailing(1),0);}
     @Test public void leadingEdgePullsBeforeTrailingEdge(){for(int i=0;i<=100;i++){float p=i/100f;assertTrue(LiquidMotion.leading(p)>=LiquidMotion.trailing(p));}assertTrue(LiquidMotion.leading(.5f)-LiquidMotion.trailing(.5f)>.2f);}

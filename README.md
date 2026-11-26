@@ -53,6 +53,9 @@ Classic green glass, original emerald and neutral silver options; Smooth motion 
 
 Glass selection and icon/label colors now follow the same visual clock; real settings confirmation still determines the logical selected mode. Cached gradients avoid per-frame shader matrix changes and the secondary dialog content animation was removed. The first RC9 launch migrates saved Fast to Smooth (Fast remains selectable). Native pages retain their OS transitions. All Samsung Galaxy models are targeted, compatibility remains in testing.
 
+### RC11 Power Saving color and adaptive performance
+Power Saving now animates the battery level indicator to warm ColorOS-style yellow even when plugged in; the level indicator returns to blue for charging or green for regular discharging when Samsung confirms Power Saving is off. The selected glass mode gets a brief yellow-gold crossfade on confirmed Power Saving. Power mode controls no longer hardcode one Galaxy model: the module checks that it is running inside Samsung Device Care, the firmware profile is valid, the native Light/Standard helper matches the expected method contract, and the helper itself advertises support. Unsupported models continue to the original Samsung performance settings; no overclocking, direct kernel writes, or unverified mode claims. Real-device support still requires testing.
+
 ### RC10 Liquid Lens experiment
 
 Only the selector renderer changes: time-based finger-following tail, rounded rest geometry, damped settling, and optional GPU optical bending of analytically reconstructed local tile edges (Android 13+ hardware Canvas). No screenshot or screen-wide refraction, no new dashboard features or palette changes. Cached Canvas gradient fallback is retained for low-power mode or shader failure. Actual GPU shader execution and frame rate need device testing.
@@ -68,7 +71,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC10 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC11 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -86,7 +89,7 @@ If the APK cannot update because of a signature mismatch, uninstall the previous
 - To return to the original interface, use the overflow menu or disable the module and reboot.
 - When reporting a bug, include your Galaxy model, Android/One UI version, Device Care version, steps to reproduce, and relevant LSPosed logs with personal data removed.
 
-The previously reported Balanced-mode issue has not been investigated further and may persist. User-selected Samsung settings are not reset by uninstalling the module.
+Balanced-mode behavior varies by firmware; RC11 verifies support before changing Samsung Light/Standard profiles, and a separate Standard profile is not available on every model. User-selected Samsung settings are not reset by uninstalling the module.
 
 ## Build & verification
 
@@ -94,7 +97,7 @@ The previously reported Balanced-mode issue has not been investigated further an
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs thirty-six automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs thirty-seven automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 

@@ -12,6 +12,7 @@ class GlassRail extends View {
     private Shader body,edge,shine;private int cachedStyle=-1;private float cachedHeight=-1,cachedTop=Float.NaN;
     private LensOptics optics;private boolean opticsTried;private final float[] tileCenters=new float[3];
     private long dragTime;private boolean dragFramePosted;private float pulse;
+    private boolean savingTint;private float savingMix;private ValueAnimator tintAnimation;
     interface MotionListener{void position(float slot);}
     private MotionListener listener;
     void setMotionListener(MotionListener l){listener=l;publish();}
@@ -25,7 +26,16 @@ class GlassRail extends View {
     private float dp(float x){return x*getResources().getDisplayMetrics().density;}
     private float clamp(float x){return GlassMath.clamp(x,0,tiles.length-1);}
     void stop(){removeCallbacks(dragFrame);dragFramePosted=false;if(anim!=null){anim.removeAllListeners();anim.cancel();anim=null;}target=-1;dragging=false;}
-    @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}
+    // Tint only the power-mode rail, not charging or usage selectors.
+    void setPowerSavingTint(boolean enabled){
+        if(enabled==savingTint)return;savingTint=enabled;
+        if(tintAnimation!=null){tintAnimation.cancel();tintAnimation=null;}
+        float end=enabled?1f:0f;
+        if(quiet.getAsBoolean()||!MotionUi.enabled()){savingMix=end;frame();return;}
+        tintAnimation=ValueAnimator.ofFloat(savingMix,end);tintAnimation.setDuration(duration.applyAsInt(480));tintAnimation.setInterpolator(new android.view.animation.PathInterpolator(.2f,.75f,.2f,1f));
+        tintAnimation.addUpdateListener(v->{savingMix=(float)v.getAnimatedValue();frame();});tintAnimation.start();
+    }
+    @Override protected void onDetachedFromWindow(){stop();if(tintAnimation!=null){tintAnimation.cancel();tintAnimation=null;}super.onDetachedFromWindow();}
     void beginDrag(){stop();dragging=true;dragTime=android.os.SystemClock.uptimeMillis();pulse=0;}
     private void advanceDrag(){
         long now=android.os.SystemClock.uptimeMillis();float elapsed=Math.max(1,Math.min(64,now-dragTime));dragTime=now;
@@ -88,8 +98,12 @@ class GlassRail extends View {
             }catch(Throwable e){optics=null;opticsTried=true;BatteryHook.log("Optical glass fallback: "+e.getClass().getSimpleName());}
         }
         if(!optical){paint.setShader(body);canvas.drawPath(liquid,paint);if(!quiet.getAsBoolean()){paint.setShader(shine);canvas.drawPath(liquid,paint);}}
+        if(savingMix>.001f){
+            paint.setShader(null);paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.argb(Math.round(65*savingMix),255,199,39));canvas.drawPath(liquid,paint);
+        }
         paint.setShader(edge);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(style.getAsInt()==2?1.25f:.9f));paint.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(liquid,paint);paint.setStyle(Paint.Style.FILL);paint.setShader(null);
         // Restrained ColorOS accent: only the short bottom highlight, not the entire glass body.
-        if(!compact){float cx=xAt(slot)+widthAt(slot)*.5f;float half=Math.min(dp(9),widthAt(slot)*.12f);paint.setColor(ColorOsPalette.ACCENT);canvas.drawRoundRect(cx-half,bottom-dp(4),cx+half,bottom-dp(2),dp(1),dp(1),paint);}
+        if(!compact){float cx=xAt(slot)+widthAt(slot)*.5f;float half=Math.min(dp(9),widthAt(slot)*.12f);paint.setColor(ColorOsPalette.mix(ColorOsPalette.ACCENT,0xffffcc35,savingMix));canvas.drawRoundRect(cx-half,bottom-dp(4),cx+half,bottom-dp(2),dp(1),dp(1),paint);}
     }
 }

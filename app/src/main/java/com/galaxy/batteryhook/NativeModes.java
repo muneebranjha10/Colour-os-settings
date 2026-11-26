@@ -34,9 +34,17 @@ final class NativeModes {
         this.a=a;pm=(PowerManager)a.getSystemService(Context.POWER_SERVICE);bm=(BatteryManager)a.getSystemService(Context.BATTERY_SERVICE);
         history=a.getSharedPreferences("colour_os_battery_profile_samples_v3",Context.MODE_PRIVATE);
         boolean supported=false;
-        try{if(ReleaseRules.testedHelperFamily(android.os.Build.MODEL,android.os.Build.VERSION.SDK_INT)&&profile()>=0){Class<?> c=Class.forName("tg.a",false,a.getClassLoader());Method check=c.getDeclaredMethod("b");Method set=c.getDeclaredMethod("c",int.class);c.getDeclaredConstructor(Context.class);if(check.getReturnType()==boolean.class&&java.lang.reflect.Modifier.isStatic(check.getModifiers())&&!java.lang.reflect.Modifier.isStatic(set.getModifiers()))supported=Boolean.TRUE.equals(callStatic(c,"b",new Class<?>[]{}));}}catch(Throwable e){BatteryHook.log("Light feature: "+e);}
+        try{// Never guess support from a Galaxy model name: validate the host, firmware setting and actual helper.
+        if(ReleaseRules.canProbeLightProfile(android.os.Build.MANUFACTURER,a.getPackageName(),android.os.Build.VERSION.SDK_INT,profile())){
+            Class<?> c=Class.forName("tg.a",false,a.getClassLoader());
+            Method check=c.getDeclaredMethod("b");Method set=c.getDeclaredMethod("c",int.class);
+            Constructor<?> ctor=c.getDeclaredConstructor(Context.class);
+            if(check.getReturnType()==boolean.class&&java.lang.reflect.Modifier.isStatic(check.getModifiers())&&!java.lang.reflect.Modifier.isStatic(set.getModifiers())&&ctor!=null){
+                supported=Boolean.TRUE.equals(callStatic(c,"b",new Class<?>[]{}));
+            }
+        }}catch(Throwable e){BatteryHook.log("Light feature: "+e);}
         lightSupported=supported;
-        BatteryHook.log("Samsung Light profile supported="+lightSupported);
+        BatteryHook.log("Samsung Light profile helper confirmed="+lightSupported+" (firmware profile="+profile()+")");
     }
     boolean supportsLight(){return lightSupported;}
     boolean isSaving(){try{return pm!=null&&pm.isPowerSaveMode();}catch(Throwable e){return false;}}

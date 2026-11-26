@@ -120,9 +120,9 @@ final class Dashboard extends LinearLayout {
         LinearLayout chargeRow=row();chargeRow.setGravity(Gravity.BOTTOM);
         LinearLayout amount=row();amount.setGravity(Gravity.BOTTOM);number=text("—",44,WHITE,true);number.setIncludeFontPadding(true);amount.addView(number);TextView pct=text("%",16,WHITE,true);pct.setPadding(dp(4),0,0,dp(5));amount.addView(pct);chargeRow.addView(amount,new LayoutParams(-2,-2));LinearLayout chargingText=col();chargingText.setGravity(Gravity.END);chargingText.setPadding(dp(6),0,0,dp(4));charge=text("",12,WHITE,true);charge.setGravity(Gravity.END);charge.setSingleLine(true);charge.setAutoSizeTextTypeUniformWithConfiguration(9,12,1,TypedValue.COMPLEX_UNIT_SP);chargeDetail=text("",10,MUTED,false);chargeDetail.setGravity(Gravity.END);chargeDetail.setMaxLines(2);chargingText.addView(charge,new LayoutParams(-1,dp(19)));chargingText.addView(chargeDetail,new LayoutParams(-1,-2));chargeRow.addView(chargingText,new LayoutParams(0,-2,1));tap(chargingText,this::chargingInfo);add(body,chargeRow,-2);space(body,8);
         bar=new Gauge();add(body,bar,29);space(body,23);
-        TextView instructions=text("Instructions ⓘ",14,MUTED,false);instructions.setPadding(dp(10),0,0,dp(2));add(body,instructions,-2);tap(instructions,()->dialog("Instructions","Balanced uses Samsung Light profile on supported phones; High performance uses Samsung Standard (no overclocking). Power saving and Super power saving control the same Samsung saver. Times are Samsung estimates or measured discharge estimates, not guarantees. Tap ⋮ for the original page."));space(body,9);
+        TextView instructions=text("Instructions ⓘ",14,MUTED,false);instructions.setPadding(dp(10),0,0,dp(2));add(body,instructions,-2);tap(instructions,()->dialog("Instructions","Balanced uses Samsung Light profile when confirmed; Performance uses Samsung Standard (no overclocking). Power saving and Super power saving control the same Samsung saver. Times are Samsung estimates or measured discharge estimates, not guarantees. Tap ⋮ for the original page."));space(body,9);
         LinearLayout main=card();add(body,main,-2);
-        LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode",engine.supportsLight()?"High performance\nmode":"Performance\nsettings"};
+        LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode",engine.supportsLight()?"Performance\n(Standard)":"Performance\nsettings"};
         for(int i=0;i<3;i++){
             final int index=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER_HORIZONTAL);tile.setPadding(dp(3),dp(12),dp(3),dp(10));
             LayoutParams p=new LayoutParams(0,dp(122),1);if(i>0)p.leftMargin=dp(9);tiles.addView(tile,p);modes[i]=tile;
@@ -131,7 +131,7 @@ final class Dashboard extends LinearLayout {
             TextView note=text("Estimating…",10.5f,MUTED,false);note.setGravity(Gravity.CENTER);note.setSingleLine(true);note.setAutoSizeTextTypeUniformWithConfiguration(9,11,1,TypedValue.COMPLEX_UNIT_SP);modeNotes[i]=note;add(tile,note,16);
             tapGlass(tile,22,()->choose(index));
         }FrameLayout tileHost=new ModeTouchHost();lens=new SelectionLens();tileHost.addView(lens,new FrameLayout.LayoutParams(-1,-1));tileHost.addView(tiles,new FrameLayout.LayoutParams(-1,dp(122)));lens.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);add(main,tileHost,122);space(main,12);
-        TextView modeExplanation=text(engine.supportsLight()?"Balanced: Light · High performance: Standard":"Balanced: normal · Performance opens native settings",11,MUTED,false);modeExplanation.setGravity(Gravity.CENTER);add(main,modeExplanation,-2);space(main,12);
+        TextView modeExplanation=text(engine.supportsLight()?"Balanced: Samsung Light · Performance: Samsung Standard":"Balanced: normal · Performance opens native settings",11,MUTED,false);modeExplanation.setGravity(Gravity.CENTER);add(main,modeExplanation,-2);space(main,12);
         LinearLayout superRow=row();LinearLayout superText=col();add(superText,text("Super power saving mode",18,WHITE,false),-2);space(superText,5);superNote=text("Uses Samsung Power saving",13,MUTED,false);add(superText,superNote,-2);superRow.addView(superText,new LayoutParams(0,-2,1));superSwitch=new Switch(uiContext);superSwitch.setShowText(false);superSwitch.setThumbTintList(ColorStateList.valueOf(WHITE));superSwitch.setTrackTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{0xff43af54,0xff555555}));superSwitch.setContentDescription("Super power saving mode (Samsung Power saving)");superRow.addView(superSwitch,new LayoutParams(-2,-2));add(main,superRow,-2);superSwitch.setOnCheckedChangeListener((b,checked)->{if(!syncingSwitch)choose(checked?1:engine.normalMode());});tap(superText,()->{if(!busy)choose(engine.isSaving()?engine.normalMode():1);});space(main,15);line(main);space(main,14);
         item(main,"Adaptive battery","Intelligently extends battery life based on your usage patterns and activity.",()->openNative("com.samsung.android.sm.battery.ui.setting.AdaptiveBatteryMenuActivity"));space(main,22);
         item(main,"Battery health",null,this::health);
@@ -170,7 +170,7 @@ final class Dashboard extends LinearLayout {
         nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");addSettingsGroup(body,"App battery management",apps);
         LinearLayout stockCard=settingsCard();settingsItem(stockCard,"Original Samsung Battery","All native battery features",original);addSettingsGroup(body,null,stockCard);
         space(body,27);TextView credit=text("Made by Muneeb",14,0xffb6b6b6,false);credit.setGravity(Gravity.CENTER);credit.setIncludeFontPadding(true);add(body,credit,-2);
-        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC10",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
+        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC11",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
         ready=true;refresh();
         MotionUi.enter(header,duration(240),quietMode,0,dp(8));MotionUi.enter(scroll,duration(340),quietMode,0,dp(20));
     }
@@ -228,7 +228,7 @@ final class Dashboard extends LinearLayout {
     }
     private AlertDialog showPanel(AlertDialog.Builder builder){AlertDialog d=builder.create();MotionUi.preparePanel(d,quietMode);d.show();return d;}
     void refresh(){if(manipulating())return;try{battery=a.registerReceiver(null,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));int percent=-1;boolean plugged=false;String state="Battery status unavailable";if(battery!=null){int l=battery.getIntExtra(BatteryManager.EXTRA_LEVEL,-1),s=battery.getIntExtra(BatteryManager.EXTRA_SCALE,-1);if(l>=0&&s>0&&l<=s)percent=Math.round(100f*l/s);int status=battery.getIntExtra(BatteryManager.EXTRA_STATUS,0);int plug=battery.getIntExtra(BatteryManager.EXTRA_PLUGGED,0);plugged=plug!=0;switch(status){case BatteryManager.BATTERY_STATUS_FULL:state=plugged?"⚡ Fully charged":"Fully charged";break;case BatteryManager.BATTERY_STATUS_CHARGING:state=plug==BatteryManager.BATTERY_PLUGGED_WIRELESS?"⚡ Wireless charging":"⚡ Charging";try{BatteryManager bm=(BatteryManager)a.getSystemService(Context.BATTERY_SERVICE);long ms=bm.computeChargeTimeRemaining();if(ms>0){long min=Math.max(1,(ms+59999)/60000);state+=" | "+(min/60>0?min/60+" h ":"")+(min%60)+" min until full";}}catch(Throwable ignore){}break;case BatteryManager.BATTERY_STATUS_DISCHARGING:state="Not charging";break;case BatteryManager.BATTERY_STATUS_NOT_CHARGING:state="Not charging";break;}}
-       boolean plugChanged=pluggedIn!=plugged;currentPercent=percent;pluggedIn=plugged;if(!plugged)reminderFired=false;if(plugged&&chargeReminder>0&&percent>=chargeReminder&&!reminderFired&&hasWindowFocus()){reminderFired=true;Toast.makeText(a,"Charge target reached: "+percent+"%",Toast.LENGTH_LONG).show();}number.setText(percent<0?"—":String.valueOf(percent));bar.setLevel(percent,plugged);
+       boolean plugChanged=pluggedIn!=plugged;currentPercent=percent;pluggedIn=plugged;if(!plugged)reminderFired=false;if(plugged&&chargeReminder>0&&percent>=chargeReminder&&!reminderFired&&hasWindowFocus()){reminderFired=true;Toast.makeText(a,"Charge target reached: "+percent+"%",Toast.LENGTH_LONG).show();}number.setText(percent<0?"—":String.valueOf(percent));bar.setLevel(percent,plugged,engine.isSaving());
        if(plugged){updateChargingHeader();if(plugChanged){handler.removeCallbacks(powerTick);if(hasWindowFocus())handler.postDelayed(powerTick,quietMode?5000:2000);}}else{handler.removeCallbacks(powerTick);updateMonitor(telemetry.read());chargeDetail.setText("");charge.setTextColor(MUTED);charge.setTypeface(Typeface.create(deviceTypeface,400,false));String e=selected>=0&&selected<3?estimates[selected]:"";charge.setText(e.contains("min")?"Can last about "+e:state);}
        if(ready){showMode(engine.activeMode());updateEstimates();if(protectionCard!=null)protectionCard.refresh();}
        }catch(Throwable t){BatteryHook.log("battery refresh: "+t);}}
@@ -280,7 +280,7 @@ final class Dashboard extends LinearLayout {
     private int duration(int ms){return PageMotion.duration(ms,animationStyle,quietMode);}
     private String reminderLabel(){return chargeReminder==0?"Disabled":"Alert at "+chargeReminder+"% · page only";}
     private void chooseChargeReminder(){int[] values={0,70,80,85,90,95,100};String[] names={"Disabled","70%","80%","85%","90%","95%","100%"};int ix=0;for(int k=0;k<values.length;k++)if(values[k]==chargeReminder)ix=k;showPanel(new AlertDialog.Builder(a).setTitle("Charge target reminder").setSingleChoiceItems(names,ix,(d,w)->{chargeReminder=values[w];reminderFired=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("charge_reminder",chargeReminder).apply();reminderNote.setText(reminderLabel());d.dismiss();refresh();}).setNegativeButton("Cancel",null));}
-    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC10\nPerformance controls: "+(engine.supportsLight()?"Samsung helper available":"Native settings fallback")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
+    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC11\nPerformance controls: "+(engine.supportsLight()?"Native Samsung Light / Standard helper confirmed":"Native settings fallback; profile helper not confirmed")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
     private void customize(){
         LinearLayout p=col();p.setPadding(dp(20),dp(8),dp(20),dp(8));add(p,text("Liquid glass strength",15,WHITE,false),-2);
         android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Neutral silver glass","Classic ColorOS glass","Original emerald glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
@@ -319,8 +319,8 @@ final class Dashboard extends LinearLayout {
     private void applySafeInsets(WindowInsets insets){WindowBars.pad(a.getWindow(),this,insets);}
     private void showMode(int which){
         int old=selected;selected=which;
-        if(lens!=null&&!modeDragging&&!busy)lens.settle(which);
         boolean saving=engine.isSaving();
+        if(lens!=null){lens.setPowerSavingTint(saving);if(!modeDragging&&!busy)lens.settle(which);}
         syncingSwitch=true;superSwitch.setChecked(saving);syncingSwitch=false;
         for(int j=0;j<3;j++){
             boolean chosen=j==which;modes[j].setSelected(chosen);
@@ -411,22 +411,24 @@ final class Dashboard extends LinearLayout {
     private final class SelectionLens extends GlassRail {SelectionLens(){super(Dashboard.this.a,modes,()->glassStyle,()->quietMode,Dashboard.this::duration,false);setMotionListener(Dashboard.this::paintModePosition);}void dragTo(float value){preview(value);}}
     private final class Gauge extends View {
         private final Paint p=new Paint(3);private final Path clip=new Path();private final RectF bounds=new RectF();
-        private float level=0,wanted=-1,front=1;private int base=0xff17db26,targetColor=base;private boolean known=false,connected;
+        private float level=0,wanted=-1,front=1;private int base=0xff17db26,targetColor=base;private boolean known=false;
         private ValueAnimator motion,transition;
         Gauge(){super(a);}
         void stop(){if(motion!=null)motion.cancel();if(transition!=null)transition.cancel();}
-        void setLevel(int value,boolean plug){
-            float target=Math.max(0,value)/100f;int color=plug?BLUE:0xff17db26;
-            boolean changed=known&&connected!=plug;boolean first=!known;known=true;connected=plug;
+        void setLevel(int value,boolean plug,boolean saving){
+            float target=Math.max(0,value)/100f;
+            // ColorOS-style priority: verified power saving yellow, otherwise charging blue or regular green.
+            int color=ReleaseRules.batteryBarColor(plug,saving);
+            boolean changed=known&&targetColor!=color;boolean first=!known;known=true;
             if(wanted!=target){wanted=target;if(motion!=null)motion.cancel();final float initial=level;motion=ValueAnimator.ofFloat(initial,target);motion.setDuration(duration(first?360:240));motion.setInterpolator(new PathInterpolator(.18f,.75f,.2f,1f));motion.addUpdateListener(v->{level=(float)v.getAnimatedValue();invalidate();});motion.start();}
             if(first){base=targetColor=color;front=1;invalidate();}
-            else if(changed){if(transition!=null)transition.cancel();base=targetColor;targetColor=color;front=0;transition=ValueAnimator.ofFloat(0f,1f);transition.setDuration(duration(plug?620:440));transition.setInterpolator(new PathInterpolator(.12f,.75f,.18f,1f));transition.addUpdateListener(v->{front=(float)v.getAnimatedValue();invalidate();});transition.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator an){base=targetColor;front=1;invalidate();}});transition.start();}
-            setContentDescription(value<0?"Battery level unavailable":"Battery level "+value+" percent"+(plug?", connected to power":""));
+            else if(changed){if(transition!=null)transition.cancel();base=targetColor;targetColor=color;front=0;transition=ValueAnimator.ofFloat(0f,1f);transition.setDuration(duration(saving?660:plug?620:480));transition.setInterpolator(new PathInterpolator(.12f,.75f,.18f,1f));transition.addUpdateListener(v->{front=(float)v.getAnimatedValue();invalidate();});transition.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator an){base=targetColor;front=1;invalidate();}});transition.start();}
+            setContentDescription(value<0?"Battery level unavailable":"Battery level "+value+" percent"+(saving?", power saving active":"")+(plug?", connected to power":""));
         }
         @Override protected void onDraw(Canvas c){
             float w=getWidth(),h=getHeight(),r=h*.36f;p.setShader(null);p.setColor(TILE);c.drawRoundRect(0,0,w,h,r,r,p);if(level<=0)return;
             float fill=w*level;bounds.set(0,0,fill,h);clip.reset();clip.addRoundRect(bounds,r,r,Path.Direction.CW);c.save();c.clipPath(clip);p.setColor(base);c.drawRect(0,0,fill,h,p);
-            if(front<.999f){float edge=(fill+h)*front-h*.5f,soft=Math.max(1,h*.34f);p.setShader(new LinearGradient(edge-soft,0,edge+soft,0,new int[]{targetColor,blend(targetColor,0xffa8eaff,.42f),base},new float[]{0,.60f,1},Shader.TileMode.CLAMP));c.drawRect(0,0,fill,h,p);p.setShader(null);}else{p.setColor(targetColor);c.drawRect(0,0,fill,h,p);}
+            if(front<.999f){float edge=(fill+h)*front-h*.5f,soft=Math.max(1,h*.34f);p.setShader(new LinearGradient(edge-soft,0,edge+soft,0,new int[]{targetColor,blend(targetColor,0xfffff3bd,.42f),base},new float[]{0,.60f,1},Shader.TileMode.CLAMP));c.drawRect(0,0,fill,h,p);p.setShader(null);}else{p.setColor(targetColor);c.drawRect(0,0,fill,h,p);}
             c.restore();
         }
     }
