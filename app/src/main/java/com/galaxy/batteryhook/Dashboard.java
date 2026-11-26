@@ -241,7 +241,7 @@ final class Dashboard extends LinearLayout {
         if(!r.plugged)return;
         charge.setTextColor(WHITE);charge.setTypeface(Typeface.create(deviceTypeface,650,true));
         charge.setText("ϟ "+(r.full?"Fully charged":r.discharging?"Connected":!showWatts||r.wattsText==null?(r.charging?"Charging":"Connected"):(r.estimated?"≈ ":"")+r.wattsText));
-        String detail=r.uncertain?"Current magnitude":r.discharging?"Battery discharging":r.wattsText==null?(r.charging?"Measuring power…":"Charging paused"):(r.wireless?"Wireless · ":"")+(r.estimated?"Estimated battery power":"Battery power");
+        String detail=r.uncertain?"Current magnitude · unverified":r.discharging?"Battery discharging":r.wattsText==null?(r.charging?"Measuring power…":"Charging paused"):(r.wireless?"Wireless · ":"")+(r.estimated?"Estimated battery power":"Battery power");
         if(r.charging&&r.minutes>0&&!r.uncertain)detail+=" · "+(r.minutes/60>0?r.minutes/60+" h ":"")+r.minutes%60+" min";
         chargeDetail.setText(showWatts?detail:r.charging&&r.minutes>0?(r.minutes/60)+" h "+(r.minutes%60)+" min until full":r.charging?"Charging":r.full?"Charge complete":"Connected");
         updateMonitor(r);
@@ -341,7 +341,7 @@ final class Dashboard extends LinearLayout {
     }
     private void chargingInfo(){
         ChargeTelemetry.Reading r=telemetry.read();
-        dialog("Battery diagnostics", "Battery power: "+(r.wattsText==null?"Unavailable":r.wattsText)+"\nSource: "+r.source+"\nVoltage: "+voltage(r)+"\nRaw current: "+current(r.ua)+"\nAverage current: "+current(r.average)+"\nFuel gauge current: "+current(r.sysfsCurrent)+"\nCharge stored: "+capacity(r)+"\nTemperature: "+temperature(r)+"\nCycle count: "+(r.cycles<0?"Unavailable":r.cycles)+"\n\nBattery-side power is not charger output. A magnitude reading has unverified direction until the charge counter confirms polarity.");
+        dialog("Battery diagnostics", "Battery-side power: "+(r.wattsText==null?"Unavailable":(r.estimated?"≈ ":"")+r.wattsText)+"\nSource: "+r.source+"\nConfidence: "+(r.uncertain?"Unverified current":r.estimated?"Estimated battery-side power":"Reported battery-side current")+"\nVoltage: "+voltage(r)+"\nRaw current: "+current(r.ua)+"\nAverage current: "+current(r.average)+"\nFuel gauge current: "+current(r.sysfsCurrent)+"\nCharge stored: "+capacity(r)+"\nTemperature: "+temperature(r)+"\nCycle count: "+(r.cycles<0?"Unavailable":r.cycles)+"\n\nBattery-side power is not charger output. A magnitude reading has unverified direction until the charge counter confirms polarity.");
     }
     // Only the hooked BatteryActivity window; no global status bar settings.
     void ensureBars(){if(isAttachedToWindow()&&hasWindowFocus())WindowBars.schedule(a.getWindow(),this);}

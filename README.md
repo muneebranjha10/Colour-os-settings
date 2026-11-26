@@ -53,6 +53,11 @@ Classic green glass, original emerald and neutral silver options; Smooth motion 
 
 Glass selection and icon/label colors now follow the same visual clock; real settings confirmation still determines the logical selected mode. Cached gradients avoid per-frame shader matrix changes and the secondary dialog content animation was removed. The first RC9 launch migrates saved Fast to Smooth (Fast remains selectable). Native pages retain their OS transitions. All Samsung Galaxy models are targeted, compatibility remains in testing.
 
+### RC12 Liquid battery bar and tools
+The battery bar is now a separate lightweight renderer with three selectable styles: Crystal glow, Liquid wave and Clean minimal. Its animated highlight, flowing crest and state-change flash stay clipped inside the real measured battery percentage. Animated fill and ColorOS green/yellow/blue transitions use short value animators; the charging loop runs only while the Battery page has focus, and stops in Low Power UI. The new **Battery bar studio**, **Battery tools** and **Wattage accuracy** submenus are in Custom features.
+
+The charging W display is still **battery-side power**, not wall-charger wattage. This release displays at most one decimal for credible readings, hides direction-unverified values and suspicious tiny charging readings, and labels derived values as approximate. Firmware sensors and device-specific hardware need real-device testing.
+
 ### RC11 Power Saving color and adaptive performance
 Power Saving now animates the battery level indicator to warm ColorOS-style yellow even when plugged in; the level indicator returns to blue for charging or green for regular discharging when Samsung confirms Power Saving is off. The selected glass mode gets a brief yellow-gold crossfade on confirmed Power Saving. Power mode controls no longer hardcode one Galaxy model: the module checks that it is running inside Samsung Device Care, the firmware profile is valid, the native Light/Standard helper matches the expected method contract, and the helper itself advertises support. Unsupported models continue to the original Samsung performance settings; no overclocking, direct kernel writes, or unverified mode claims. Real-device support still requires testing.
 
@@ -71,7 +76,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC11 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC12 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -97,7 +102,7 @@ Balanced-mode behavior varies by firmware; RC11 verifies support before changing
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs thirty-seven automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs thirty-nine automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 

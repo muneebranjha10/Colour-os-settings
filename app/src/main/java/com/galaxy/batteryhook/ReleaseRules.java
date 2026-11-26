@@ -15,6 +15,11 @@ final class ReleaseRules {
             && "com.samsung.android.lool".equals(packageName)
             && api>=33&&api<=37&&(current==0||current==1);
     }
+    // An unverified or tiny current must not be published as exact charging power.
+    static boolean publishPower(double watts,boolean charging,boolean full,boolean uncertain){
+        return !uncertain&&Double.isFinite(watts)&&watts>=0&&watts<=75
+          &&((charging&&watts>=.5)||(full&&watts<=.5));
+    }
     static int batteryBarColor(boolean plugged,boolean saving){
         return saving?0xffffca37:plugged?0xff168cf4:0xff17db26;
     }

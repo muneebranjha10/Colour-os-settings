@@ -7,6 +7,18 @@ public class ReleaseChecks {
     @Test public void parsesBracketedSamsungUsage(){HealthReader.Reading r=new HealthReader.Reading();HealthReader.parseDump(r,"mSavedBatteryUsage: [79361]","test");HealthReader.resolveCycles(r);assertEquals(793,r.cycles);}
     @Test public void prefersNonzeroVendorCycle(){HealthReader.Reading r=new HealthReader.Reading();HealthReader.parseDump(r,"battery_cycle: 793\nmSavedBatteryUsage: [80000]","test");HealthReader.resolveCycles(r);assertEquals(793,r.cycles);}
     @Test public void missingAndInvalidValuesStayUnavailable(){HealthReader.Reading r=new HealthReader.Reading();HealthReader.parseDump(r,"fg_asoc: 999\nmSavedBatteryUsage: [-1]\nbattery_cycle: 0","test");HealthReader.resolveCycles(r);assertEquals(-1,r.main());assertEquals(-1,r.cycles);}
+    @Test public void unverifiedTinyOrNonfiniteWattsAreNotPublished(){
+        assertFalse(ReleaseRules.publishPower(.01,true,false,false));
+        assertFalse(ReleaseRules.publishPower(.3,true,false,false));
+        assertFalse(ReleaseRules.publishPower(5,true,false,true));
+        assertFalse(ReleaseRules.publishPower(Double.NaN,true,false,false));
+        assertFalse(ReleaseRules.publishPower(100,true,false,false));
+        assertTrue(ReleaseRules.publishPower(3.5,true,false,false));
+    }
+    @Test public void fullBatteryCanReallyReportZeroWatts(){
+        assertTrue(ReleaseRules.publishPower(0,false,true,false));
+        assertFalse(ReleaseRules.publishPower(0,true,false,false));
+    }
     @Test public void wattsDoesNotOverflow(){assertEquals(12.0,ReleaseRules.watts(3000000,4000),.00001);}
     @Test public void rejectsInvalidPowerSamples(){assertTrue(Double.isNaN(ReleaseRules.watts(-1,4000)));assertTrue(Double.isNaN(ReleaseRules.watts(1000000,100)));assertTrue(Double.isNaN(ReleaseRules.watts(Double.NaN,4000)));}
     @Test public void knownProtectionRangeOnly(){for(int n=80;n<=95;n+=5)assertTrue(ReleaseRules.supportsProtection(36,1,n));assertFalse(ReleaseRules.supportsProtection(35,1,80));assertFalse(ReleaseRules.supportsProtection(37,1,100));assertFalse(ReleaseRules.supportsProtection(37,4,90));}

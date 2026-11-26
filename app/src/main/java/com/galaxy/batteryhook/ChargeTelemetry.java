@@ -110,9 +110,17 @@ final class ChargeTelemetry {
                 else if(now-sampleTime>=700)smooth=.45*smooth+.55*power;
                 if(now-sampleTime>=700){
                     sampleTime=now;smoothSource=r.source;
-                    if(!r.uncertain&&(power>=0.15||r.full)){peak=Double.isNaN(peak)?smooth:Math.max(peak,smooth);if(samples.size()>=40)samples.removeFirst();samples.addLast(smooth);}
+                    if(ReleaseRules.publishPower(power,r.charging,r.full,r.uncertain)){peak=Double.isNaN(peak)?smooth:Math.max(peak,smooth);if(samples.size()>=40)samples.removeFirst();samples.addLast(smooth);}
                 }
-                r.watts=smooth;r.wattsText=String.format(Locale.US,"%.2f W",smooth);
+                if(ReleaseRules.publishPower(smooth,r.charging,r.full,r.uncertain)){
+                    r.watts=smooth;
+                    r.wattsText=String.format(Locale.US,"%.1f W",smooth);
+                }else{
+                    r.watts=Double.NaN;
+                    r.wattsText=null;
+                    if(r.uncertain)r.source="Battery current direction unverified";
+                    else if(r.charging&&Double.isFinite(smooth)&&smooth<.5)r.source="Charging · current too low to verify watts";
+                }
             }else{smooth=Double.NaN;smoothSource="";}
             r.peak=peak;r.history=new double[samples.size()];int ix=0;for(double v:samples)r.history[ix++]=v;
             if(r.charging&&manager!=null){try{long ms=manager.computeChargeTimeRemaining();if(ms>0)r.minutes=Math.max(1,(ms+59999)/60000);}catch(Throwable ignored){}}
