@@ -53,6 +53,11 @@ Classic green glass, original emerald and neutral silver options; Smooth motion 
 
 Glass selection and icon/label colors now follow the same visual clock; real settings confirmation still determines the logical selected mode. Cached gradients avoid per-frame shader matrix changes and the secondary dialog content animation was removed. The first RC9 launch migrates saved Fast to Smooth (Fast remains selectable). Native pages retain their OS transitions. All Samsung Galaxy models are targeted, compatibility remains in testing.
 
+### RC17 — Synchronized ColorOS-inspired flow
+After reviewing the user-supplied 120 Hz screen recording, the shortcoming was the Light/Standard secondary selector's lag behind the main three-mode selector. RC17 starts both highlight animations on touch, then **reconciles the final position against the confirmed Samsung profile**. If the device rejects the change, both selectors return to the actual mode.
+
+The glass motion is now capped at roughly 170 ms for an adjacent tile and 210 ms across two tile positions, depending on the chosen speed preference. The transition preserves the short connected trailing lip and adds a brief, bounded specular rim drawn in the existing animation frames; it does not create another loop or blur the text. Labels on both selectors gently respond to the same frame updates. ColorOS 17's own proprietary rendering engine is not included; this is a video-matched recreation, not a guaranteed pixel-perfect copy.
+
 ### RC16 — Faster, clearer ColorOS-inspired motion
 Based on a fresh ~6.3-second user screen recording of RC15, the two glass selectors were taking too long and stretching across multiple tile cards. RC16 keeps **one filled moving capsule**, with a capped ~8dp moving lip instead of joining the entire head/tail bounding rectangle. The animation responds early and settles quickly: nominal **195 ms for adjacent tiles** and **245 ms for larger jumps**, scaled by the selected animation speed and capped at **350 ms**. The default ColorOS Flow preset now uses 1× motion duration instead of 1.22×. Label/icon feedback is subtler.
 
@@ -101,7 +106,7 @@ Only the selector renderer changes: time-based finger-following tail, rounded re
 | Other Samsung Galaxy devices | Experimental, dependent on Device Care activity and permissions |
 | Non-Samsung devices / unrooted devices | Unsupported |
 
-The v1.1 RC16 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
+The v1.1 RC17 is a public testing release, not a universal compatibility certification. Firmware-specific helpers are restricted to the original test model and recognized API levels; other devices use native settings fallback. No system-wide icon hooks or charging firmware modifications.
 
 ## Installation
 
@@ -127,7 +132,7 @@ Balanced behavior varies by firmware. RC14 uses Samsung Standard as its default 
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions runs at least 44 automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
+GitHub Actions runs at least 45 automated regression checks, builds the APK and verifies its signature and LSPosed entry. These checks do not replace device testing or validate every glass effect. No network permission or permanent background service is required.
 
 ---
 
