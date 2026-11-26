@@ -69,7 +69,7 @@ final class Dashboard extends LinearLayout {
     private int glassStyle=1,animationStyle=1,barStyle=1;private boolean barGlint=true,barFlow=true,showMonitor=true,showWatts=true,quietMode=false,haptics=true;
     private int chargeReminder=0;private boolean reminderFired;private TextView reminderNote;
     private ProtectionCard protectionCard;
-    private boolean modeDragging;
+    private boolean modeDragging,modeSavingPaint;
     private final Handler handler=new Handler(Looper.getMainLooper());
     
     private final NativeModes engine;
@@ -124,18 +124,17 @@ final class Dashboard extends LinearLayout {
         LinearLayout chargeRow=row();chargeRow.setGravity(Gravity.BOTTOM);
         LinearLayout amount=row();amount.setGravity(Gravity.BOTTOM);number=text("—",44,WHITE,true);number.setIncludeFontPadding(true);amount.addView(number);TextView pct=text("%",16,WHITE,true);pct.setPadding(dp(4),0,0,dp(5));amount.addView(pct);chargeRow.addView(amount,new LayoutParams(-2,-2));LinearLayout chargingText=col();chargingText.setGravity(Gravity.END);chargingText.setPadding(dp(6),0,0,dp(4));charge=text("",12,WHITE,true);charge.setGravity(Gravity.END);charge.setSingleLine(true);charge.setAutoSizeTextTypeUniformWithConfiguration(9,12,1,TypedValue.COMPLEX_UNIT_SP);chargeDetail=text("",10,MUTED,false);chargeDetail.setGravity(Gravity.END);chargeDetail.setMaxLines(2);chargingText.addView(charge,new LayoutParams(-1,dp(19)));chargingText.addView(chargeDetail,new LayoutParams(-1,-2));chargeRow.addView(chargingText,new LayoutParams(0,-2,1));tap(chargingText,this::chargingInfo);add(body,chargeRow,-2);space(body,8);
         bar=new LiquidBatteryBar(a,()->quietMode,this::duration);bar.configure(barStyle,barGlint,barFlow);add(body,bar,27);space(body,23);
-        TextView instructions=text("Instructions ⓘ",14,MUTED,false);instructions.setPadding(dp(10),0,0,dp(2));add(body,instructions,-2);tap(instructions,()->dialog("Instructions","Balanced uses Samsung Light profile when confirmed; Performance uses Samsung Standard (no overclocking). Power saving and Super power saving control the same Samsung saver. Times are Samsung estimates or measured discharge estimates, not guarantees. Tap ⋮ for the original page."));space(body,9);
+        TextView instructions=text("Instructions ⓘ",14,MUTED,false);instructions.setPadding(dp(10),0,0,dp(2));add(body,instructions,-2);tap(instructions,()->dialog("Instructions","Balanced restores Samsung Standard, where supported. Power saving uses Samsung battery saver. Performance opens Samsung processing controls. Light mode and other options are in Power profiles. Battery time estimates are approximate."));space(body,9);
         LinearLayout main=card();add(body,main,-2);
-        LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode",engine.supportsLight()?"Performance\n(Standard)":"Performance\nsettings"};
+        LinearLayout tiles=row();tileRow=tiles;String[] captions={"Balanced\nmode","Power saving\nmode","Performance\nsettings"};
         for(int i=0;i<3;i++){
             final int index=i;LinearLayout tile=col();tile.setGravity(Gravity.CENTER_HORIZONTAL);tile.setPadding(dp(3),dp(12),dp(3),dp(10));
             LayoutParams p=new LayoutParams(0,dp(122),1);if(i>0)p.leftMargin=dp(9);tiles.addView(tile,p);modes[i]=tile;
             Symbol symbol=new Symbol(i+1,WHITE);modeIcons[i]=symbol;tile.addView(symbol,new LayoutParams(dp(31),dp(30)));space(tile,5);
             TextView label=text(captions[i],12.5f,WHITE,false);label.setGravity(Gravity.CENTER);label.setMaxLines(3);label.setBreakStrategy(0);label.setHyphenationFrequency(0);label.setAutoSizeTextTypeUniformWithConfiguration(10,13,1,TypedValue.COMPLEX_UNIT_SP);modeLabels[i]=label;tile.addView(label,new LayoutParams(-1,0,1));
-            TextView note=text("Estimating…",10.5f,MUTED,false);note.setGravity(Gravity.CENTER);note.setSingleLine(true);note.setAutoSizeTextTypeUniformWithConfiguration(9,11,1,TypedValue.COMPLEX_UNIT_SP);modeNotes[i]=note;add(tile,note,16);
+            TextView note=text(i==2?"Open settings":"Estimating…",10.5f,MUTED,false);note.setGravity(Gravity.CENTER);note.setSingleLine(true);note.setAutoSizeTextTypeUniformWithConfiguration(9,11,1,TypedValue.COMPLEX_UNIT_SP);modeNotes[i]=note;add(tile,note,16);
             tapGlass(tile,22,()->choose(index));
-        }FrameLayout tileHost=new ModeTouchHost();lens=new SelectionLens();tileHost.addView(lens,new FrameLayout.LayoutParams(-1,-1));tileHost.addView(tiles,new FrameLayout.LayoutParams(-1,dp(122)));lens.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);add(main,tileHost,122);space(main,12);
-        TextView modeExplanation=text(engine.supportsLight()?"Balanced: Samsung Light · Performance: Samsung Standard":"Balanced: normal · Performance opens native settings",11,MUTED,false);modeExplanation.setGravity(Gravity.CENTER);add(main,modeExplanation,-2);space(main,12);
+        }FrameLayout tileHost=new ModeTouchHost();lens=new SelectionLens();tileHost.addView(lens,new FrameLayout.LayoutParams(-1,-1));tileHost.addView(tiles,new FrameLayout.LayoutParams(-1,dp(122)));lens.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);add(main,tileHost,122);space(main,18);
         LinearLayout superRow=row();LinearLayout superText=col();add(superText,text("Super power saving mode",18,WHITE,false),-2);space(superText,5);superNote=text("Uses Samsung Power saving",13,MUTED,false);add(superText,superNote,-2);superRow.addView(superText,new LayoutParams(0,-2,1));superSwitch=new Switch(uiContext);superSwitch.setShowText(false);superSwitch.setThumbTintList(ColorStateList.valueOf(WHITE));superSwitch.setTrackTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{0xff43af54,0xff555555}));superSwitch.setContentDescription("Super power saving mode (Samsung Power saving)");superRow.addView(superSwitch,new LayoutParams(-2,-2));add(main,superRow,-2);superSwitch.setOnCheckedChangeListener((b,checked)->{if(!syncingSwitch)choose(checked?1:engine.normalMode());});tap(superText,()->{if(!busy)choose(engine.isSaving()?engine.normalMode():1);});space(main,15);line(main);space(main,14);
         item(main,"Adaptive battery","Intelligently extends battery life based on your usage patterns and activity.",()->openNative("com.samsung.android.sm.battery.ui.setting.AdaptiveBatteryMenuActivity"));space(main,22);
         item(main,"Battery health",null,this::health);
@@ -157,7 +156,9 @@ final class Dashboard extends LinearLayout {
         settingsItem(custom,"Battery bar studio","ColorOS reference geometry and motion",this::barStudio);
         settingsItem(custom,"OPPO Sans 4.0 font",FontStore.has(a)?"Imported from your font file":"Import official font file for exact lettering",this::fontOptions);
         settingsItem(custom,"Customize appearance","Glass style, animation speed and monitor",this::customize);
-        settingsItem(custom,"Battery tools","Battery health, diagnostics and native controls",this::batteryTools);
+        settingsItem(custom,"Battery tools","Advanced controls and quick access",this::batteryTools);
+        settingsItem(custom,"Power profiles","Balanced, Light and processing options",this::powerProfilesMenu);
+        settingsItem(custom,"Charging controls","Standard, fast and wireless charging",this::chargingControlsMenu);
         settingsItem(custom,"Wattage accuracy","Understand charging watts and sensor data",this::wattTools);
         thermalNote=settingsItem(custom,"Battery temperature alert",thermalLimit==0?"Disabled · while this page is open":"Warn at "+thermalLimit+" °C · while this page is open",this::chooseThermalAlert);
         reminderNote=settingsItem(custom,"Charge target reminder",reminderLabel(),this::chooseChargeReminder);
@@ -178,7 +179,7 @@ final class Dashboard extends LinearLayout {
         nativeItem(apps,"App battery restrictions","com.samsung.android.sm.battery.ui.setting.AppRestrictionActivity");addSettingsGroup(body,"App battery management",apps);
         LinearLayout stockCard=settingsCard();settingsItem(stockCard,"Original Samsung Battery","All native battery features",original);addSettingsGroup(body,null,stockCard);
         space(body,27);TextView credit=text("Made by Muneeb",14,0xffb6b6b6,false);credit.setGravity(Gravity.CENTER);credit.setIncludeFontPadding(true);add(body,credit,-2);
-        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC13",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
+        space(body,5);TextView edition=text("ColourOS Battery  ·  v1.1 RC14",11,0xff777777,false);edition.setGravity(Gravity.CENTER);add(body,edition,-2);space(body,14);
         ready=true;refresh();
         MotionUi.enter(header,duration(240),quietMode,0,dp(8));MotionUi.enter(scroll,duration(340),quietMode,0,dp(20));
     }
@@ -205,7 +206,7 @@ final class Dashboard extends LinearLayout {
         settingsItem(parent,label,null,()->openNative(cls));
     }
     private void showInsights(){
-        String mode=selected==0?"Balanced":selected==1?"Power saving":selected==2?"High performance":"Unknown";
+        String mode=selected==0?"Balanced":selected==1?"Power saving":engine.isLightProfile()?"Light profile":"Unknown";
         String estimate=selected>=0&&selected<3?estimates[selected]:"Unavailable";
         String advice=pluggedIn?"Battery protection can reduce time spent at full charge.":"Use Power saving or review background activity to reduce drain.";
         showPanel(new AlertDialog.Builder(a).setTitle("Battery insights").setMessage("Battery: "+(currentPercent<0?"Unavailable":currentPercent+"%")+"\nMode: "+mode+"\nEstimated time: "+estimate+"\n\n"+advice+"\n\nLocal readings and rule-based tips, not AI-generated analysis.").setNegativeButton("Close",null).setPositiveButton("Samsung usage statistics",(d,w)->original.run()));
@@ -321,11 +322,71 @@ final class Dashboard extends LinearLayout {
         if(view instanceof TextView){TextView t=(TextView)view;Typeface old=t.getTypeface();int weight=old==null?400:old.getWeight();t.setTypeface(Typeface.create(deviceTypeface,Math.max(100,Math.min(900,weight)),false));}
         if(view instanceof ViewGroup){ViewGroup v=(ViewGroup)view;for(int n=0;n<v.getChildCount();n++)updateFonts(v.getChildAt(n));}
     }
+    private boolean nativeAvailable(String name){
+        try{
+            android.content.pm.ActivityInfo info=a.getPackageManager().getActivityInfo(
+                new android.content.ComponentName(a.getPackageName(),name),0);
+            return info.enabled&&info.applicationInfo.enabled;
+        }catch(Throwable t){return false;}
+    }
+    private void nativeProfile(){openNative("com.samsung.android.sm.battery.ui.setting.PerformanceOptimizationActivity");}
+    private void performanceSettings(){
+        String enhanced="com.samsung.android.sm.battery.ui.setting.EnhancedProcessingActivity";
+        if(nativeAvailable(enhanced))openNative(enhanced);
+        else nativeProfile();
+    }
+    private void chooseLight(){
+        if(busy)return;
+        if(!engine.supportsLight()){nativeProfile();return;}
+        busy=true;superSwitch.setEnabled(false);
+        for(LinearLayout tile:modes)tile.setEnabled(false);
+        engine.setLight(()->{
+            if(!isAttachedToWindow())return;
+            busy=false;superSwitch.setEnabled(true);
+            for(LinearLayout tile:modes)tile.setEnabled(true);
+            refresh();
+            if(!engine.isLightProfile())Toast.makeText(a,"Light profile was not confirmed.",Toast.LENGTH_LONG).show();
+        });
+    }
+    private void powerProfilesMenu(){
+        showPanel(new AlertDialog.Builder(a).setTitle("Power profiles").setItems(new String[]{
+            "Balanced · restore Standard","Light · save power and reduce heat",
+            "Enhanced processing · Samsung settings","Samsung performance profiles",
+            "Power saving settings","Adaptive power saving"
+        },(d,w)->{
+            if(w==0)choose(0);else if(w==1)chooseLight();else if(w==2)performanceSettings();
+            else if(w==3)nativeProfile();else if(w==4)openNative("com.samsung.android.sm.powermode.ui.PowerModeSettingsActivity");
+            else openNative("com.samsung.android.sm.powermode.ui.AdaptivePowerSavingActivity");
+        }).setNegativeButton("Close",null));
+    }
+    private void chargingControlsMenu(){
+        showPanel(new AlertDialog.Builder(a).setTitle("Charging controls").setItems(new String[]{
+            "Standard charging","Fast / Super fast charging","Fast wireless charging",
+            "Battery protection","Charging diagnostics","Samsung charging settings"
+        },(d,w)->{
+            if(w==0)selectChargingPolicy(0);else if(w==1)selectChargingPolicy(1);
+            else if(w==2)openNative("com.samsung.android.sm.battery.ui.fastwirelesscharging.FastWirelessActivity");
+            else if(w==3)openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity");
+            else if(w==4)chargingInfo();else openNative("com.samsung.android.sm.battery.ui.BatteryAdvancedMenuActivity");
+        }).setNegativeButton("Close",null));
+    }
+    private void batteryLabMenu(){
+        showPanel(new AlertDialog.Builder(a).setTitle("Battery diagnostics").setItems(new String[]{
+            "Battery health & cycles","Live charging diagnostics","Battery usage today",
+            "Temperature alert","Charge target reminder","Charging watts explained","Original Battery"
+        },(d,w)->{
+            if(w==0)health();else if(w==1)chargingInfo();else if(w==2)openUsage(0);
+            else if(w==3)chooseThermalAlert();else if(w==4)chooseChargeReminder();
+            else if(w==5)wattTools();else original.run();
+        }).setNegativeButton("Close",null));
+    }
     private void batteryTools(){
-        showPanel(new AlertDialog.Builder(a).setTitle("Battery tools").setItems(new String[]{"Battery health and cycles","Charging diagnostics","Battery protection","Power saving settings","Performance profile","Original Samsung Battery"},(d,w)->{
-            if(w==0)health();else if(w==1)chargingInfo();else if(w==2)openNative("com.samsung.android.sm.battery.ui.protection.BatteryProtectionActivity");
-            else if(w==3)openNative("com.samsung.android.sm.powermode.ui.PowerModeSettingsActivity");
-            else if(w==4)openNative("com.samsung.android.sm.battery.ui.setting.PerformanceOptimizationActivity");else original.run();
+        showPanel(new AlertDialog.Builder(a).setTitle("Battery tools").setItems(new String[]{
+            "Power profiles & cooling","Charging & protection","Battery health & diagnostics",
+            "Battery bar studio","Original Samsung Battery"
+        },(d,w)->{
+            if(w==0)powerProfilesMenu();else if(w==1)chargingControlsMenu();
+            else if(w==2)batteryLabMenu();else if(w==3)barStudio();else original.run();
         }).setNegativeButton("Close",null));
     }
     private void wattTools(){
@@ -333,7 +394,7 @@ final class Dashboard extends LinearLayout {
     }
     private String reminderLabel(){return chargeReminder==0?"Disabled":"Alert at "+chargeReminder+"% · page only";}
     private void chooseChargeReminder(){int[] values={0,70,80,85,90,95,100};String[] names={"Disabled","70%","80%","85%","90%","95%","100%"};int ix=0;for(int k=0;k<values.length;k++)if(values[k]==chargeReminder)ix=k;showPanel(new AlertDialog.Builder(a).setTitle("Charge target reminder").setSingleChoiceItems(names,ix,(d,w)->{chargeReminder=values[w];reminderFired=false;a.getSharedPreferences("colour_battery_options",0).edit().putInt("charge_reminder",chargeReminder).apply();reminderNote.setText(reminderLabel());d.dismiss();refresh();}).setNegativeButton("Cancel",null));}
-    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC13\nPerformance controls: "+(engine.supportsLight()?"Native Samsung Light / Standard helper confirmed":"Native settings fallback; profile helper not confirmed")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
+    private void compatibility(){dialog("Compatibility report","Device: "+android.os.Build.MODEL+"\nAndroid: "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nModule: 1.1 RC14\nPerformance controls: "+(engine.supportsLight()?"Native Samsung Light / Standard helper confirmed":"Native settings fallback; profile helper not confirmed")+"\nCharging controls: "+(chargingPolicy.canApply()?"Inline available":"Native settings fallback")+"\nGlass rendering: "+(android.os.Build.VERSION.SDK_INT>=33?"ColorOS-style glass renderer (hardware Canvas)":"ColorOS-style glass renderer")+"\n\nNo global SystemUI hooks or charging firmware modifications.");}
     private void customize(){
         LinearLayout p=col();p.setPadding(dp(20),dp(8),dp(20),dp(8));add(p,text("Liquid glass strength",15,WHITE,false),-2);
         android.widget.RadioGroup g=new android.widget.RadioGroup(a);String[] styles={"Neutral silver glass","Classic ColorOS glass","Original emerald glass"};for(int k=0;k<3;k++){android.widget.RadioButton b=new android.widget.RadioButton(a);b.setId(100+k);b.setText(styles[k]);g.addView(b);if(k==glassStyle)g.check(b.getId());}add(p,g,-2);
@@ -372,33 +433,49 @@ final class Dashboard extends LinearLayout {
     private void applySafeInsets(WindowInsets insets){WindowBars.pad(a.getWindow(),this,insets);}
     private void showMode(int which){
         int old=selected;selected=which;
-        boolean saving=engine.isSaving();
-        if(lens!=null){lens.setPowerSavingTint(saving);if(!modeDragging&&!busy)lens.settle(which);}
+        boolean saving=engine.isSaving();modeSavingPaint=saving;
+        if(lens!=null){
+            lens.setPowerSavingTint(saving);
+            if(!modeDragging&&!busy)lens.settle(which);
+            paintModePosition(lens.slot);
+        }
         syncingSwitch=true;superSwitch.setChecked(saving);syncingSwitch=false;
         for(int j=0;j<3;j++){
-            boolean chosen=j==which;modes[j].setSelected(chosen);
-            if(old!=which){modeNotes[j].setTextColor(MUTED);}
+            modes[j].setSelected(j==which);
+            if(old!=which)modeNotes[j].setTextColor(MUTED);
         }
+        if(engine.isLightProfile())modeNotes[0].setText("Light active");
     }
     private void choose(int mode){
         if(busy||!isAttachedToWindow())return;
-        if(mode==2&&!engine.supportsLight()){if(lens!=null)lens.settle(engine.activeMode());openNative("com.samsung.android.sm.battery.ui.setting.PerformanceOptimizationActivity");return;}
+        if(mode==2){if(lens!=null)lens.settle(engine.activeMode());performanceSettings();return;}
+        if(mode==0&&engine.needsManualStandard()){
+            if(lens!=null)lens.settle(engine.activeMode());
+            Toast.makeText(a,"Set Standard in Samsung performance profiles.",Toast.LENGTH_LONG).show();
+            nativeProfile();return;
+        }
         if(mode==engine.activeMode()){if(lens!=null)lens.settle(mode);showMode(mode);return;}
         busy=true;superSwitch.setEnabled(false);
         if(lens!=null)lens.settle(mode);
         for(LinearLayout tile:modes)tile.setEnabled(false);
         engine.apply(mode,()->{
             if(!isAttachedToWindow())return;
-            busy=false;superSwitch.setEnabled(true);for(LinearLayout tile:modes)tile.setEnabled(true);
-            int confirmed=engine.activeMode();if(lens!=null)lens.settle(confirmed);refresh();
-            if(confirmed!=mode){Toast.makeText(a,"Samsung did not confirm the requested mode.",Toast.LENGTH_SHORT).show();BatteryHook.log("mode not confirmed "+mode);}
+            busy=false;superSwitch.setEnabled(true);
+            for(LinearLayout tile:modes)tile.setEnabled(true);
+            int confirmed=engine.activeMode();
+            if(lens!=null)lens.settle(confirmed);
+            refresh();
+            if(confirmed!=mode){
+                Toast.makeText(a,"Samsung did not confirm the requested mode.",Toast.LENGTH_SHORT).show();
+                BatteryHook.log("mode not confirmed "+mode);
+            }
         });
     }
     private void updateEstimates(){
         if(!isAttachedToWindow())return;
         engine.estimate((values)->{
             if(!isAttachedToWindow())return;
-            estimates=values.clone();for(int j=0;j<3;j++)modeNotes[j].setText(values[j]);
+            estimates=values.clone();for(int j=0;j<3;j++)modeNotes[j].setText(j==2?"Open settings":j==0&&engine.isLightProfile()?"Light active":values[j]);
             if(!pluggedIn&&selected>=0&&selected<3&&values[selected].contains("min"))charge.setText("Can last about "+values[selected]);
             if(assistantSummary!=null)assistantSummary.setText(pluggedIn?"Charging information and battery protection.":engine.isSaving()?"Power saving is active. Review your usage.":"Review your battery usage and power-saving options.");
             superNote.setText(values[1].contains("min")||values[1].contains(" h")?"Can last about "+values[1]:"Uses Samsung Power saving");
@@ -458,7 +535,23 @@ final class Dashboard extends LinearLayout {
             default:return true;
         }}
     }
-    private void paintModePosition(float position){for(int j=0;j<3;j++){int c=blend(WHITE,ColorOsPalette.ACCENT,GlassMath.coverage(position,j));if(modeLabels[j]!=null&&modeLabels[j].getCurrentTextColor()!=c)modeLabels[j].setTextColor(c);if(modeIcons[j]!=null&&modeIcons[j].color!=c){modeIcons[j].color=c;modeIcons[j].invalidate();}}}
+    private void paintModePosition(float position){
+        int accent=modeSavingPaint?0xffffcc35:ColorOsPalette.ACCENT;
+        for(int j=0;j<3;j++){
+            float coverage=GlassMath.coverage(position,j);
+            int color=blend(WHITE,accent,coverage);
+            if(modeLabels[j]!=null){
+                if(modeLabels[j].getCurrentTextColor()!=color)modeLabels[j].setTextColor(color);
+                float scale=!quietMode&&MotionUi.enabled()?1f+.018f*coverage:1f;
+                if(Math.abs(modeLabels[j].getScaleX()-scale)>.002f){modeLabels[j].setScaleX(scale);modeLabels[j].setScaleY(scale);}
+            }
+            if(modeIcons[j]!=null){
+                if(modeIcons[j].color!=color){modeIcons[j].color=color;modeIcons[j].invalidate();}
+                float scale=!quietMode&&MotionUi.enabled()?1f+.045f*coverage:1f;
+                if(Math.abs(modeIcons[j].getScaleX()-scale)>.002f){modeIcons[j].setScaleX(scale);modeIcons[j].setScaleY(scale);}
+            }
+        }
+    }
     private void paintChargingPosition(float position){for(int j=0;j<2;j++){int c=blend(WHITE,ColorOsPalette.ACCENT,GlassMath.coverage(position,j));if(chargingTitles[j]!=null&&chargingTitles[j].getCurrentTextColor()!=c)chargingTitles[j].setTextColor(c);}}
     private final class ChargingLens extends GlassRail {ChargingLens(){super(Dashboard.this.a,chargingTiles,()->glassStyle,()->quietMode,Dashboard.this::duration,false);setMotionListener(Dashboard.this::paintChargingPosition);}}
     private final class SelectionLens extends GlassRail {SelectionLens(){super(Dashboard.this.a,modes,()->glassStyle,()->quietMode,Dashboard.this::duration,false);setMotionListener(Dashboard.this::paintModePosition);}void dragTo(float value){preview(value);}}

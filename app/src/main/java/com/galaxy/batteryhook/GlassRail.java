@@ -54,7 +54,7 @@ class GlassRail extends View {
         if(target==next&&anim!=null&&anim.isRunning())return;
         if(slot<0||quiet.getAsBoolean()||!MotionUi.enabled()||(Math.abs(head-next)<.001f&&Math.abs(tail-next)<.001f&&energy<.01f&&Math.abs(pulse)<.01f)){stop();slot=head=tail=target=next;energy=pulse=0;frame();return;}
         stop();target=next;final float startHead=head,startTail=tail,startSlot=slot,startEnergy=energy,startPulse=pulse;
-        anim=ValueAnimator.ofFloat(0f,1f);anim.setInterpolator(new LinearInterpolator());anim.setDuration(duration.applyAsInt(Math.abs(next-startSlot)>1.1f?490:360));
+        anim=ValueAnimator.ofFloat(0f,1f);anim.setInterpolator(new LinearInterpolator());anim.setDuration(duration.applyAsInt(Math.abs(next-startSlot)>1.1f?560:440));
         anim.addUpdateListener(v->{float t=(float)v.getAnimatedValue();head=clamp(GlassMath.between(startHead,next,GlassMath.railHead(t)));tail=clamp(GlassMath.between(startTail,next,GlassMath.railTail(t)));slot=clamp(GlassMath.between(startSlot,next,GlassMath.railHead(t)));energy=Math.max(startEnergy*(1-t),(float)Math.sin(Math.PI*t));pulse=startPulse*(1-t)+GlassMath.elasticPulse(t);frame();});
         anim.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){slot=head=tail=next;energy=pulse=0;frame();}});anim.start();
     }

@@ -2,6 +2,8 @@ package com.galaxy.batteryhook;
 final class ReleaseRules {
     static int cyclesFromUsage(int usage){return usage>=0&&usage<=5000000?usage/100:-1;}
     static double watts(double ua,int mv){return ua>=0&&Double.isFinite(ua)&&ua<=15000000&&mv>=2500&&mv<=5000?ua*mv/1000000000d:Double.NaN;}
+    static int samsungProfileForBalanced(){return 0;}
+    static int samsungProfileForLight(){return 1;}
     static int clampOption(int n){return Math.max(0,Math.min(2,n));}
     // Only probe the native helper inside Samsung Device Care on supported Android versions.
     // The helper's own availability check and a valid firmware profile are required too.
