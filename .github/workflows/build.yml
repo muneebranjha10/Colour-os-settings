@@ -93,7 +93,7 @@ jobs:
           native=(root/'NativeModes.java').read_text()
           glass=(root/'GlassRail.java').read_text()
           assert 'bar.setLevel(percent,plugged,engine.isSaving())' in dash
-          assert 'boolean changed=known&&targetColor!=color' in dash
+          assert 'from=ColorOsPalette.mix(from,to,blend)' in (root/'LiquidBatteryBar.java').read_text()
           assert 'lens.setPowerSavingTint(saving)' in dash
           assert 'canProbeLightProfile' in native
           assert 'Profile not confirmed' in native
