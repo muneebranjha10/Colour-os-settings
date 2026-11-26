@@ -26,7 +26,7 @@ final class ProtectionCard extends LinearLayout {
     private final ContentObserver observer=new ContentObserver(new Handler(Looper.getMainLooper())){@Override public void onChange(boolean self){refresh();}};
     private int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
     private GradientDrawable shape(int color,int radius,boolean active){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));if(active)d.setStroke(dp(1),GREEN);return d;}
-    private TextView text(String label,int size,int color){TextView t=new TextView(a);t.setText(label);t.setTextSize(size);t.setTextColor(color);return t;}
+    private TextView text(String label,int size,int color){TextView t=new TextView(a);t.setText(label);t.setTextSize(size);t.setTextColor(color);t.setTypeface(Typeface.create(FontStore.get(a),400,false));return t;}
     private void add(LinearLayout p,View v){p.addView(v,new LayoutParams(-1,-2));}
     private void gap(LinearLayout p,int h){p.addView(new View(a),new LayoutParams(1,dp(h)));}
     ProtectionCard(Activity activity,Runnable nativePage,java.util.function.IntSupplier style,java.util.function.BooleanSupplier quiet,java.util.function.IntUnaryOperator duration,java.util.function.BooleanSupplier haptics){

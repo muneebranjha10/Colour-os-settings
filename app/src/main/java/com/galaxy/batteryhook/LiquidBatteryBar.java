@@ -41,8 +41,12 @@ final class LiquidBatteryBar extends View {
         if(fillAnimator!=null){fillAnimator.cancel();fillAnimator=null;}
         if(colorAnimator!=null){colorAnimator.cancel();colorAnimator=null;}
         if(sweepAnimator!=null){sweepAnimator.cancel();sweepAnimator=null;}
+        if(valid&&target>=0)displayed=target;
+        oldColor=newColor;colorMix=1f;sweep=1f;invalidate();
     }
     void stop(){stopAnimations();}
+    @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(!focus)stopAnimations();}
+    @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(visibility!=VISIBLE)stopAnimations();}
     @Override protected void onDetachedFromWindow(){stopAnimations();super.onDetachedFromWindow();}
     @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
         super.onSizeChanged(w,h,oldw,oldh);
